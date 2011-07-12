@@ -1,0 +1,49 @@
+Rubble is a compiler project for a simplistic imperative programming language
+without garbage collection -- the sort of thing you would put together for a
+school project.  The only sophisticated feature slated for inclusion is type
+inference at the statement level as in C#.
+
+Source code should look roughly like this:
+
+def factorial(n UInt32) UInt32:
+    if (n == 0):
+        return 1
+    else:
+        return n * factorial(n - 1)
+
+Types are inferred using type class constraints, as in Haskell, but the set
+of type classes is currently fixed.  The type supported are to be the usual
+set of machine word types, the booleans, records, pointers to all of those,
+function pointers, some type of one-dimensional array, and possibly a unit
+type.  There will not be a string type; the only form of interaction with the
+outside world will be returning a value to the shell.
+
+There is a use case for two types of arrays.  The first type places a size_t
+size right before the first array element, which is useful, among other things,
+for putting buffers directly onto the stack.  The second type combines a size
+with a pointer to a separate buffer.  An implementation of APL-style arrays
+would use both: the first would be in the array descriptor to store the array
+shape, while the second would point to the data buffer.  Strictly speaking,
+one could also just use a pointer and store the shape elsewhere on the heap,
+but that seems wasteful.
+
+Flow control is deliberately minimal.  The only control flow constructs are
+function calls, the infinite loop, the conditional statement, and the break
+statement.  Everything else can be built efficiently on top of those.  The
+while loop, for example, translates to:
+
+forever:
+    if (not(cond)): break
+    body
+
+The syntax is not finalized.  I may implement Haskell-style function call
+syntax, which would translate this:
+
+foo(bar, baz, qux, (1/2 + 3) * 4) * fee(fi, fo, fum)
+
+to this:
+
+foo bar baz qux ((1/2 + 3) * 4) * fee fi fo fum
+
+In addition to being slightly shorter, it also reads better.  That approach
+would cause some difficulties when parsing, but it's probably fixable.
