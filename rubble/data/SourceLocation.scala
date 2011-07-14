@@ -10,4 +10,8 @@ sealed class SourceLocation
     
     def this(row: Int, endColumn: Int, length: Int) = this(row, endColumn - length, row, endColumn)
     
+    override def toString(): String = {
+        return "(new SourceLocation(" + startRow + "," + startColumn +
+            "," + endRow + "," + endColumn + "))"
+    }
 }

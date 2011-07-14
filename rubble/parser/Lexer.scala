@@ -7,21 +7,7 @@ import rubble.data.Tokens.Bracket._
 import scala.collection.mutable.ArrayBuffer
 
 
-object Lexer {
-    
-    def lex(input: String): ArrayBuffer[Token] = {
-        val lexer = new Lexer(input)
-        val result = lexer.lex(ArrayBuffer.empty[Token], false)
-        if (lexer.s != "") {
-            val message = if (lexer.s take 1 matches ")\\]}") "Unmatched closing bracket." else "Unrecognized character."
-            throw new ParseFailure(new SourceLocation(lexer.row, lexer.column, 1), message)
-        }
-        return result
-    }
-}
-
-
-class Lexer(var s: String) {
+class Lexer(private var s: String) {
     
     private var row: Int = 1
     private var column: Int = 1
@@ -30,11 +16,11 @@ class Lexer(var s: String) {
     
     
     private def dropWhitespace(): Unit = {
-        var workDone = true;
+        var workDone = true
         while (workDone) {
-            workDone = false;
+            workDone = false
             
-            // Remove spaces.  After this, s might be "", so charAt(0) can fail.
+            // Remove spaces.
             val str = s takeWhile (c => c == ' ')
             s = s drop str.length
             column += str.length
@@ -42,11 +28,12 @@ class Lexer(var s: String) {
                 workDone = true
                 separated = true
             }
+            // After this, s might be "", so charAt(0) can fail.
             
             // Remove comments.
             if ((s take 1) == "#") {
                 s = s dropWhile (c => c != '\n')
-                workDone = true;
+                workDone = true
                 separated = true
             }
             
@@ -109,7 +96,7 @@ class Lexer(var s: String) {
         else if (c == '`') {
             return lexBlockHelper("`", "`", BackTicks)
         }
-        return null;
+        return null
     }
     
     
@@ -150,12 +137,12 @@ class Lexer(var s: String) {
     private val reservedSymbols = Set("=", "addressOf", "negate", "valueAt")
     
     private def lexOperator(): Token = {
-        var str = s takeWhile (c => c.toString matches "[!@$%\\^\\&*-=+\\\\|<>/\\?]")
+        var str = s takeWhile (c => c.toString matches """[!@$%\^\&*\-=+\\|<>/\?]""")
         if (str.length > 0) {
             s = s drop str.length
             column += str.length
             
-            val op = if (separated && (s take 1 matches "[_a-zA-Z(\\[{]"))
+            val op = if (separated && (s take 1 matches """[_a-zA-Z\(\[\{]"""))
                 (str match { case "-" => "negate"
                            ; case "*" => "valueAt"
                            ; case "&" => "addressOf"
@@ -195,5 +182,14 @@ class Lexer(var s: String) {
         
         val token = lexBlock(inBackticks) +++ lexIdentifier +++ lexInteger +++ lexOperator +++ lexSeparator
         return if (token != null) { lex(result += token, inBackticks) } else { result }
+    }
+    
+    def lex(): ArrayBuffer[Token] = {
+        val result = lex(ArrayBuffer.empty[Token], false)
+        if (s != "") {
+            val message = if (s take 1 matches ")\\]}") "Unmatched closing bracket." else "Unrecognized character."
+            throw new ParseFailure(new SourceLocation(row, column, 1), message)
+        }
+        return result
     }
 }
