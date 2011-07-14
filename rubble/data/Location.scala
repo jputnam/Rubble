@@ -1,7 +1,7 @@
 package rubble.data;
 
 
-sealed class SourceLocation
+sealed class Location
     ( val startRow   : Int
     , val startColumn: Int
     , val endRow     : Int
@@ -11,7 +11,7 @@ sealed class SourceLocation
     def this(row: Int, endColumn: Int, length: Int) = this(row, endColumn - length, row, endColumn)
     
     override def toString(): String = {
-        return "(new SourceLocation(" + startRow + "," + startColumn +
+        return "(new Location(" + startRow + "," + startColumn +
             "," + endRow + "," + endColumn + "))"
     }
 }

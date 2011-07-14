@@ -5,12 +5,12 @@ object Tokens {
     
     object Bracket extends Enumeration {
         type Bracket = Value;
-        val BackTick, Paren, Square, Brace, ImplicitBrace, BackTicks = Value;
+        val BackTick, Paren, Square, Brace, ImplicitBrace = Value;
     }
     import Bracket._;
     
     
-    sealed class Token(val loc : SourceLocation) { }
+    sealed class Token(val loc : Location) { }
     
     
     implicit def mplus(l: Token) = new {
@@ -19,36 +19,36 @@ object Tokens {
     
     
     sealed case class Block
-        ( override val loc : SourceLocation
+        ( override val loc : Location
         , val bracket      : Bracket
         , val subTokens    : scala.collection.mutable.ArrayBuffer[Token]
         ) extends Token(loc) { }
     
-    sealed case class Comma(override val loc : SourceLocation) extends Token(loc) { }
+    sealed case class Comma(override val loc : Location) extends Token(loc) { }
     
-    sealed case class EOS(override val loc : SourceLocation) extends Token(loc) { }
+    sealed case class EOS(override val loc : Location) extends Token(loc) { }
     
     sealed case class Identifier
-        ( override val loc : SourceLocation
+        ( override val loc : Location
         , val actual       : String
         ) extends Token(loc) { }
     
     sealed case class Integer
-        ( override val loc : SourceLocation
+        ( override val loc : Location
         , val actual       : String
         , val value        : BigInt
         ) extends Token(loc) { }
     
     sealed case class Operator
-        ( override val loc : SourceLocation
+        ( override val loc : Location
         , val actual       : String
         ) extends Token(loc) { }
     
     sealed case class Reserved
-        ( override val loc : SourceLocation
+        ( override val loc : Location
         , val actual       : String
         ) extends Token(loc) { }
     
-    sealed case class Semicolon(override val loc: SourceLocation) extends Token(loc) { }
+    sealed case class Semicolon(override val loc: Location) extends Token(loc) { }
     
 }

@@ -1,7 +1,7 @@
 package rubble.parser
 
-import rubble.data.ParseFailure
-import rubble.data.SourceLocation
+import rubble.data.ParseError
+import rubble.data.Location
 import rubble.data.Tokens._
 import rubble.data.Tokens.Bracket._
 import scala.collection.mutable.ArrayBuffer
@@ -48,28 +48,28 @@ class Lexer(private var s: String) {
         }
         
         if ((s take 1) == "\t") {
-            throw new ParseFailure(row, column, 1, "The tab character is illegal.")
+            throw new ParseError(row, column, 1, "The tab character is illegal.")
         }
     }
     
     
-    private def lexBlock(inBackticks: Boolean): Token = {
+    private def lexBlock(inBackTick: Boolean): Token = {
         def lexBlockHelper(open: String, close: String, bracket: Bracket): Token = {
             val startRow = row
             val startColumn = column
             s = s drop 1
             column += 1
             separated = true
-            val tokens = lex(ArrayBuffer.empty[Token], bracket == BackTicks)
+            val tokens = lex(ArrayBuffer.empty[Token], bracket == BackTick)
             
             if ((s take 1) != close) {
-                throw new ParseFailure(row, column, 1, "Unclosed " + open + ".  " + (s take 1) + " was found instead.")
+                throw new ParseError(row, column, 1, "Unclosed " + open + ".  " + (s take 1) + " was found instead.")
             }
             s = s drop 1
             column += 1
             
             separated = false
-            return Block(new SourceLocation(startRow, startColumn, row, column), bracket, tokens)
+            return Block(new Location(startRow, startColumn, row, column), bracket, tokens)
         }
         
         val c = s charAt 0
@@ -84,17 +84,17 @@ class Lexer(private var s: String) {
             val startColumn = column
             val block = lexBlockHelper("{", "}", Brace)
             if (row != startRow && (column-1) != startColumn) {
-                throw new ParseFailure(row, column, 1, "An explicit brace pair must begin and end on either the same row or the same column.")
+                throw new ParseError(row, column, 1, "An explicit brace pair must begin and end on either the same row or the same column.")
             }
             return block
         }    
         else if (c == ':') {
             column += 1
             s = s drop 1
-            return Block(new SourceLocation(row, column, 1), ImplicitBrace, ArrayBuffer.empty[Token])
+            return Block(new Location(row, column, 1), ImplicitBrace, ArrayBuffer.empty[Token])
         }    
         else if (c == '`') {
-            return lexBlockHelper("`", "`", BackTicks)
+            return lexBlockHelper("`", "`", BackTick)
         }
         return null
     }
@@ -109,7 +109,7 @@ class Lexer(private var s: String) {
             s = s drop str.length
             
             separated = false
-            val loc = new SourceLocation(row, column, str.length)
+            val loc = new Location(row, column, str.length)
             return if (reservedWords contains str) Reserved(loc, str) else Identifier(loc, str)
         }
         return null
@@ -127,7 +127,7 @@ class Lexer(private var s: String) {
             column += str.length
             
             separated = false
-            return Integer(new SourceLocation(row, column, str.length), str, BigInt apply str)
+            return Integer(new Location(row, column, str.length), str, BigInt apply str)
         }
         
         return null
@@ -150,7 +150,7 @@ class Lexer(private var s: String) {
                 else str
             
             separated = false
-            val loc = new SourceLocation(row, column, str.length)
+            val loc = new Location(row, column, str.length)
             return if (reservedSymbols contains str) Reserved(loc, op) else Operator(loc, op)
         }
         return null
@@ -163,32 +163,33 @@ class Lexer(private var s: String) {
             column += 1
             
             separated = true
-            return Comma(new SourceLocation(row, column, 1))
+            return Comma(new Location(row, column, 1))
         }
         if ((s charAt 0) == ';') {
             s = s drop 1
             column += 1
             
             separated = true
-            return Semicolon(new SourceLocation(row, column, 1))
+            return Semicolon(new Location(row, column, 1))
         }
         return null
     }
     
     
-    private def lex(result: ArrayBuffer[Token], inBackticks: Boolean): ArrayBuffer[Token] = {
+    private def lex(result: ArrayBuffer[Token], inBackTick: Boolean): ArrayBuffer[Token] = {
         dropWhitespace
         if (s == "") return result
         
-        val token = lexBlock(inBackticks) +++ lexIdentifier +++ lexInteger +++ lexOperator +++ lexSeparator
-        return if (token != null) { lex(result += token, inBackticks) } else { result }
+        val token = lexBlock(inBackTick) +++ lexIdentifier +++ lexInteger +++ lexOperator +++ lexSeparator
+        return if (token != null) { lex(result += token, inBackTick) } else { result }
     }
+    
     
     def lex(): ArrayBuffer[Token] = {
         val result = lex(ArrayBuffer.empty[Token], false)
         if (s != "") {
             val message = if (s take 1 matches ")\\]}") "Unmatched closing bracket." else "Unrecognized character."
-            throw new ParseFailure(new SourceLocation(row, column, 1), message)
+            throw new ParseError(new Location(row, column, 1), message)
         }
         return result
     }
