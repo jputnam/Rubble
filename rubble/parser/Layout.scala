@@ -20,6 +20,16 @@ class Layout private (private val tokens: ArrayBuffer[Token], private var index:
             , onImplicitEndOfBlock: => Unit
             ): ArrayBuffer[Token] = {
         
+        def deletePrecedingSemicolon(): Unit = {
+            if (result.size > 0) {
+                result(result.size - 1) match {
+                    case Semicolon(_) =>
+                        result remove (result.size - 1)
+                    case _ =>
+                }
+            }
+        }
+        
         while (index < tokens.length) {
             if (tokens(index).loc.startColumn == semicolonColumn) {
                 onImplicitSemicolon
@@ -28,36 +38,43 @@ class Layout private (private val tokens: ArrayBuffer[Token], private var index:
                 onImplicitEndOfBlock
             }
             
-            // Why am I incrementing index now instead of later?  If the current
-            // token is a colon, I need to recurse, but that recursion needs to
-            // start with the token after the current one.  I could try to do
-            // something tricky, like putting an extra increment before that call
-            // and a decrement afterward, and that would work, I think, but is far
-            // too clever for comfort.
+            /* Why am I incrementing index now instead of later?  If the current
+               token is a colon, I need to recurse, but that recursion needs to
+               start with the token after the current one.  I could try to do
+               something tricky, like putting an extra increment before that call
+               and a decrement afterward, and that would work, I think, but is far
+               too clever for comfort.
+            */
             val current = tokens(index)
             index += 1
             
             current match {
                 case Block(loc, Brace, subtokens) =>
+                    deletePrecedingSemicolon
                     result += Block(loc, Brace, new Layout(subtokens, 0, semicolonColumn).layoutBlock(true))
                     permitSemicolon = true
+                    
                 case Block(loc, ImplicitBrace, subtokens) =>
                     result += Block(loc, ImplicitBrace, layoutBlock(false))
                     permitSemicolon = true
+                    
                 case Block(loc, bracket, subtokens) =>
                     result += Block(loc, bracket, new Layout(subtokens, 0, semicolonColumn).layoutBrackets)
                     permitSemicolon = true
+                    
                 case Semicolon(_) =>
                     if (permitSemicolon) {
                         result += current
                         permitSemicolon = false
                     }
+                    
                 case _ =>
                     result += current
                     permitSemicolon = true
             }
         }
-        // Remove trailing semicolons.
+        
+        deletePrecedingSemicolon
         return result
     }
     
@@ -99,7 +116,7 @@ class Layout private (private val tokens: ArrayBuffer[Token], private var index:
         
         layoutAny(result
             , { if (permitSemicolon) {
-                    result += Semicolon(new Location(tokens(index).loc.startRow, tokens(index).loc.startColumn, 0))
+                    result :+ Semicolon(new Location(tokens(index).loc.startRow, tokens(index).loc.startColumn, 0))
                     permitSemicolon = false
                 }
             },{ if (isExplicit) {
