@@ -1,54 +1,122 @@
 package rubble.parser
 
-import rubble.data.ParseFailure
-import rubble.data.SourceLocation
+import rubble.data.ParseError
+import rubble.data.Location
 import rubble.data.Tokens._
 import rubble.data.Tokens.Bracket._
 import scala.collection.mutable.ArrayBuffer
 
 
-class Layout(private val tokens: ArrayBuffer[Token]) {
+class Layout private (private val tokens: ArrayBuffer[Token], private var index: Int, private var semicolonColumn: Int) {
+    
+    def this(tokens: ArrayBuffer[Token]) = this(tokens, 0, 1)
+    
+    private var permitSemicolon = false
     
     
-    private def layout(input: ArrayBuffer[Token], offset: Int, semicolonColumn: Int): (ArrayBuffer[Token], Int) = {
-        val output = ArrayBuffer.empty[Token]
-        var current = offset
-        var permitSemicolon = true
+    private def layoutAny
+            ( result: ArrayBuffer[Token]
+            , onImplicitSemicolon: => Unit
+            , onImplicitEndOfBlock: => Unit
+            ): ArrayBuffer[Token] = {
         
-        while (current < input.length) {
-            if (input(current).loc.startColumn == semicolonColumn && permitSemicolon) {
-                output += Semicolon(new SourceLocation(input(current).loc.startRow, input(current).loc.startColumn, 0))
-                permitSemicolon = false
+        while (index < tokens.length) {
+            if (tokens(index).loc.startColumn == semicolonColumn) {
+                onImplicitSemicolon
             }
-            else if (input(current).loc.startColumn < semicolonColumn) {
-                return (output, current)
+            else if (tokens(index).loc.startColumn < semicolonColumn) {
+                onImplicitEndOfBlock
             }
             
-            input(current) match {
-                case Block(_, _, _) =>
-                    // TODO
+            // Why am I incrementing index now instead of later?  If the current
+            // token is a colon, I need to recurse, but that recursion needs to
+            // start with the token after the current one.  I could try to do
+            // something tricky, like putting an extra increment before that call
+            // and a decrement afterward, and that would work, I think, but is far
+            // too clever for comfort.
+            val current = tokens(index)
+            index += 1
+            
+            current match {
+                case Block(loc, Brace, subtokens) =>
+                    result += Block(loc, Brace, new Layout(subtokens, 0, semicolonColumn).layoutBlock(true))
+                    permitSemicolon = true
+                case Block(loc, ImplicitBrace, subtokens) =>
+                    result += Block(loc, ImplicitBrace, layoutBlock(false))
+                    permitSemicolon = true
+                case Block(loc, bracket, subtokens) =>
+                    result += Block(loc, bracket, new Layout(subtokens, 0, semicolonColumn).layoutBrackets)
+                    permitSemicolon = true
                 case Semicolon(_) =>
                     if (permitSemicolon) {
-                        output += input(current)
+                        result += current
                         permitSemicolon = false
                     }
                 case _ =>
-                    output += input(current)
+                    result += current
                     permitSemicolon = true
             }
-            current += 1
         }
-        return (output, current)
+        // Remove trailing semicolons.
+        return result
     }
     
     
+    private def layoutBrackets(): ArrayBuffer[Token] =
+        layoutAny(ArrayBuffer.empty[Token]
+            , { throw new ParseError(tokens(index).loc, "The statement ended before you closed all brackets.") }
+            , { throw new ParseError(tokens(index).loc, "The statement ended before you closed all brackets.") }
+            )
+    
+    
+    private def layoutBlock
+            ( isExplicit: Boolean
+            ): ArrayBuffer[Token] = {
+        val result = ArrayBuffer.empty[Token]
+        
+        // This will happen with an empty explicit block or an implicit block
+        // which is at the end of whatever contains it.
+        if (index >= tokens.length) {
+            return result
+        }
+        if (tokens(index).loc.startColumn <= semicolonColumn) {
+            if (isExplicit) {
+                throw new ParseError(tokens(index).loc, "The parser can't implicitly close an explicit brace.")
+            } else {
+                return result
+            }
+        }
+        
+        semicolonColumn = tokens(index).loc.startColumn
+        return layoutBlockBody(result, isExplicit)
+    }
+    
+    
+    private def layoutBlockBody
+            ( result: ArrayBuffer[Token]
+            , isExplicit: Boolean
+            ): ArrayBuffer[Token] =
+        
+        layoutAny(result
+            , { if (permitSemicolon) {
+                    result += Semicolon(new Location(tokens(index).loc.startRow, tokens(index).loc.startColumn, 0))
+                    permitSemicolon = false
+                }
+            },{ if (isExplicit) {
+                    throw new ParseError(tokens(index).loc, "The parser can't implicitly close an explicit brace.")
+                } else {
+                    return result
+                }
+            })
+    
+    
     def layout(): ArrayBuffer[Token] = {
-        val (result, index) = layout(tokens, 0, 1)
+        val result = layoutBlockBody(ArrayBuffer.empty[Token], false)
         
         // This means that we stopped parsing before we ran out of input.
         // I don't think that should be possible. so this should be an ICE.
         if (index < tokens.length) {
-            throw new ParseFailure(tokens(index).loc, "FIXME: ")
+            throw new ParseError(tokens(index).loc, "ICE: The parser stopped before it ran out of input.")
         }
         return result
     }
