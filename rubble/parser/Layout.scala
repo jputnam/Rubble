@@ -21,10 +21,10 @@ class Layout private (private val tokens: ArrayBuffer[Token], private var index:
             ): ArrayBuffer[Token] = {
         
         def deletePrecedingSemicolon(): Unit = {
-            if (result.size > 0) {
-                result(result.size - 1) match {
+            if (result.length > 0) {
+                result(result.length - 1) match {
                     case Semicolon(_) =>
-                        result remove (result.size - 1)
+                        result remove (result.length - 1)
                     case _ =>
                 }
             }
@@ -55,7 +55,9 @@ class Layout private (private val tokens: ArrayBuffer[Token], private var index:
                     permitSemicolon = true
                     
                 case Block(loc, ImplicitBrace, subtokens) =>
-                    result += Block(loc, ImplicitBrace, layoutBlock(false))
+                    val block = layoutBlock(false)
+                    val newLoc = if (block.length == 0) loc else new Location(loc, block(block.length-1).loc)
+                    result += Block(newLoc, ImplicitBrace, block)
                     permitSemicolon = true
                     
                 case Block(loc, bracket, subtokens) =>
@@ -116,7 +118,7 @@ class Layout private (private val tokens: ArrayBuffer[Token], private var index:
         
         layoutAny(result
             , { if (permitSemicolon) {
-                    result :+ Semicolon(new Location(tokens(index).loc.startRow, tokens(index).loc.startColumn, 0))
+                    result += Semicolon(tokens(index).loc.before)
                     permitSemicolon = false
                 }
             },{ if (isExplicit) {

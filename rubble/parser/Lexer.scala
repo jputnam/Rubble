@@ -20,6 +20,7 @@ class Lexer(private var s: String) {
         while (workDone) {
             workDone = false
             
+            
             // Remove spaces.
             val str = s takeWhile (c => c == ' ')
             s = s drop str.length
