@@ -1,23 +1,21 @@
-package rubble.data;
+package rubble.data
 
 
 sealed case class Location
-    ( val startRow   : Int
-    , val startColumn: Int
-    , val endRow     : Int
-    , val endColumn  : Int
+    ( val start: Point
+    , val end: Point
     ) {
     
-    def this(row: Int, endColumn: Int, length: Int) = this(row, endColumn - length, row, endColumn)
+    def this(startRow: Int, startColumn: Int, endRow: Int, endColumn: Int) = this(Point(startRow, startColumn), Point(endRow, endColumn))
     
-    def this(start: Location, end: Location) = this(start.startRow, start.startColumn, end.endRow, end.endColumn)
+    def this(row: Int, endColumn: Int, length: Int) = this(Point(row, endColumn - length), Point(row, endColumn))
     
     def before(): Location = {
-        return new Location(startRow, startColumn, startRow, startColumn)
+        return new Location(start, start)
     }
     
     override def toString(): String = {
-        return "(new Location(" + startRow + "," + startColumn +
-            "," + endRow + "," + endColumn + "))"
+        return "(new Location(" + start.row + "," + start.column +
+            "," + end.row + "," + end.column + "))"
     }
 }

@@ -70,7 +70,7 @@ class Lexer(private var s: String) {
             column += 1
             
             separated = false
-            return Block(new Location(startRow, startColumn, row, column), bracket, tokens)
+            return Block(new Location(startRow, startColumn, row, column), open, bracket, tokens)
         }
         
         val c = s charAt 0
@@ -84,15 +84,12 @@ class Lexer(private var s: String) {
             val startRow = row
             val startColumn = column
             val block = lexBlockHelper("{", "}", Brace)
-            if (row != startRow && (column-1) != startColumn) {
-                throw new ParseError(row, column, 1, "An explicit brace pair must begin and end on either the same row or the same column.")
-            }
             return block
         }    
         else if (c == ':') {
             column += 1
             s = s drop 1
-            return Block(new Location(row, column, 1), ImplicitBrace, ArrayBuffer.empty[Token])
+            return Block(new Location(row, column, 1), ":", ImplicitBrace, ArrayBuffer.empty[Token])
         }    
         else if (c == '`') {
             return lexBlockHelper("`", "`", BackTick)

@@ -10,7 +10,7 @@ object Tokens {
     import Bracket._;
     
     
-    sealed class Token(val loc : Location) { }
+    sealed abstract class Token(val loc : Location, val actual: String) { }
     
     
     implicit def mplus(l: Token) = new {
@@ -19,36 +19,35 @@ object Tokens {
     
     
     sealed case class Block
-        ( override val loc : Location
-        , val bracket      : Bracket
-        , val subTokens    : scala.collection.mutable.ArrayBuffer[Token]
-        ) extends Token(loc) { }
+        ( override val loc    : Location
+        , override val actual : String
+        , val bracket         : Bracket
+        , val subTokens       : scala.collection.mutable.ArrayBuffer[Token]
+        ) extends Token(loc, actual) { }
     
-    sealed case class Comma(override val loc : Location) extends Token(loc) { }
-    
-    sealed case class EOS(override val loc : Location) extends Token(loc) { }
+    sealed case class Comma(override val loc : Location) extends Token(loc, ",") { }
     
     sealed case class Identifier
-        ( override val loc : Location
-        , val actual       : String
-        ) extends Token(loc) { }
+        ( override val loc    : Location
+        , override val actual : String
+        ) extends Token(loc, actual) { }
     
     sealed case class Integer
-        ( override val loc : Location
-        , val actual       : String
-        , val value        : BigInt
-        ) extends Token(loc) { }
+        ( override val loc    : Location
+        , override val actual : String
+        , val value           : BigInt
+        ) extends Token(loc, actual) { }
     
     sealed case class Operator
-        ( override val loc : Location
-        , val actual       : String
-        ) extends Token(loc) { }
+        ( override val loc    : Location
+        , override val actual : String
+        ) extends Token(loc, actual) { }
     
     sealed case class Reserved
-        ( override val loc : Location
-        , val actual       : String
-        ) extends Token(loc) { }
+        ( override val loc    : Location
+        , override val actual : String
+        ) extends Token(loc, actual) { }
     
-    sealed case class Semicolon(override val loc: Location) extends Token(loc) { }
+    sealed case class Semicolon(override val loc: Location) extends Token(loc, ";") { }
     
 }
