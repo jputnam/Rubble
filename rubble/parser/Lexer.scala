@@ -98,7 +98,7 @@ class Lexer(private var s: String) {
     }
     
     
-    private val reservedWords = Set("def", "break", "if", "forever", "return", "val", "var")
+    private val reservedWords = Set("def", "break", "else", "if", "forever", "return", "val", "var")
     
     private def lexIdentifier(): Token = {
         if ((s take 1) matches "[_a-zA-Z]") {
