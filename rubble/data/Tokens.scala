@@ -22,7 +22,7 @@ object Tokens {
         ( override val loc    : Location
         , override val actual : String
         , val bracket         : Bracket
-        , val subTokens       : scala.collection.mutable.ArrayBuffer[Token]
+        , val subtokens       : scala.collection.mutable.ArrayBuffer[Token]
         ) extends Token(loc, actual) { }
     
     sealed case class Comma(override val loc : Location) extends Token(loc, ",") { }

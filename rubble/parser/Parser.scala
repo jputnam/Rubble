@@ -6,74 +6,170 @@ import rubble.data.ParseError
 import rubble.data.Tokens
 import rubble.data.Tokens.Bracket._
 
-import scala.collection.immutable.HashMap
+import scala.collection.mutable.HashMap
 import scala.collection.mutable.ArrayBuffer
 
 
 object Parser {
     
-    // Denotation a = Location -> GetParseToken -> a
-    
-    abstract class PrattParser[T] {
+    abstract class PrattParser[T](
+            val contextName: String,
+            val loc: Location,
+            val tokens: ArrayBuffer[Tokens.Token]) {
         
-        def leftDenotation(t: T, token: Tokens.Token): T
+        private var index: Int = 0
+        val leftDenotationTable = HashMap.empty[String, (Int, (PrattParser[T], T) => T)]
+        val nullDenotationTable = HashMap.empty[String, PrattParser[T] => T]
         
-        def nullDenotation(token: Tokens.Token): T
-    }
-    
-    
-    def unexpectedToken[A](loc: Location, expected: String, found: String): A = {
-      throw new ParseError(loc, "The compiler needed " + expected + " but found " + found + ".")
-    }
-    
-    
-    def expression(loc: Location) = {
-    	throw new ParseError(loc, "ICE: Don't know how to parse expressions")
-    }
-    
-    
-    def expressionList(loc: Location, ts: ArrayBuffer[Tokens.Token]): ArrayBuffer[AST.Expression] = {
-        throw new ParseError(loc, "ICE: Don't know how to parse expression lists")
-    }
-    
-    
-    object Expression extends PrattParser[AST.Expression] {
         
-        def leftDenotation(t: AST.Expression, token: Tokens.Token): AST.Expression = {
-            return null
+        def errorUnexpected[A](loc: Location, expected: String, message: String): A = {
+    		throw new ParseError(loc, "The compiler needed " + expected + " but " + message + ".")
         }
         
-        def nullDenotation(token: Tokens.Token): AST.Expression =
-    		token match {
-              case Tokens.Block(loc, actual, bracket, subTokens) =>
-                bracket match {
-                  case Paren    => AST.Parenthesized(loc, null, expressionList(loc, subTokens))
-                  case Square   => AST.ArrayLiteral(loc, null, expressionList(loc, subTokens))
-                  case BackTick => unexpectedToken(loc, "an expression", "a backtick sequence")
-                  case default  => unexpectedToken(loc, "an expression", "a code block")
+        
+        def errorUnexpectedToken[A](loc: Location, message: String): A =
+            errorUnexpected(loc, contextName, message)
+    	
+    	
+        def leftDenotation(token: Tokens.Token): Option[(Int, T => T)]
+        
+        
+        def nextToken(): Tokens.Token = {
+            if (index >= tokens.length) {
+                errorUnexpectedToken(new Location(loc.end, loc.end), "ran out of input")
+            }
+            index += 1
+            return tokens(index - 1)
+        }
+        
+        
+        def nullDenotation(token: Tokens.Token): T
+        
+        
+        def parse(rbp: Int): T = {
+            var ast = nullDenotation(nextToken())
+            
+            while (index < tokens.length) {
+                leftDenotation(tokens(index)) match {
+                    case Some((lbp, f)) if rbp < lbp => {
+                        index += 1
+                        ast = f(ast)
+                    }
+                    case default => return ast
                 }
-              case Tokens.Comma(loc) => unexpectedToken(loc, "an expression", "a comma")
-              case Tokens.Identifier(loc, actual) =>
-                AST.Variable(loc, null, actual)
-              case Tokens.Integer(loc, actual, value) =>
-                AST.Integer(loc, null, actual, value)
-              case Tokens.Operator(loc, actual) => unexpectedToken(loc, "an expression", "an operator")
-              case Tokens.Reserved(loc, actual) =>
-                actual match {
-                  case "addressOf" => AST.AddressOf(loc, null, expression(loc))
-                  case "if"        => {
-                    val cond = throw new ParseError(loc, "ICE: Don't know how to parse conditionals.")
-                    val t = throw new ParseError(loc, "ICE: Don't know how to parse conditionals.")
-                    // grab the else keyword
-                    val f = throw new ParseError(loc, "ICE: Don't know how to parse conditionals.")
-                    AST.Conditional(loc, null, cond, t, f)
-                  }
-                  case "negate"    => AST.Apply(loc, null, null, null)
-                  case "valueAt"   => AST.ValueAt(loc, null, expression(loc))
-                  case default     => unexpectedToken(loc, "an expression", actual)
+            }
+            return ast
+        }
+        
+        
+        def parseList(separator: String): ArrayBuffer[T] = {
+            if (tokens.length == 0) { return ArrayBuffer.empty[T] }
+            val result = ArrayBuffer.empty[T]
+            while (true) {
+                result += parse(0)
+                if (index < tokens.length) {
+                    tokens(index) match {
+                        case t if t.actual != separator => errorUnexpected(t.loc, separator, t.actual)
+                        case _ => index += 1
+                    }
+                } else {
+                    return result
                 }
-              case Tokens.Semicolon(loc) => unexpectedToken(loc, "an expression", "a semicolon")
+            }
+            throw new ParseError(loc.end, "ICE: parseList should never fall off the end of its loop.")
+        }
+        
+        
+        def requireBlock(bracket: Bracket, name: String): (Location, ArrayBuffer[Tokens.Token]) =
+            nextToken() match {
+                case Tokens.Block(loc, _, b, ts) if b == bracket => return (loc, ts)
+                case t => errorUnexpected(t.loc, name, "found " + t.actual)
+            }
+        
+        
+        def requireReserved(name: String) = {
+        	nextToken() match {
+        	    case Tokens.Reserved(_, s) if s == name => Unit
+        	    case t => errorUnexpected(t.loc, name, "found " + t.actual)
+        	}
+        }
+    }
+    
+    
+    class Expression(
+            override val loc: Location,
+            override val tokens: ArrayBuffer[Tokens.Token])
+            extends PrattParser[AST.Expression]("an expression", loc, tokens) {
+        
+        
+    	private def infixExpression(prec: Int, left: AST.Expression, center: AST.Expression): AST.Expression = {
+    	    val right = parse(prec)
+    	    val (op, args) = center match {
+    	        case AST.Apply(_, _, op, args) => (op, args += left += right)
+    	        case _ => (center, ArrayBuffer(left, right))
+    	    }
+    	    return AST.Apply(left.loc, null, op, args)
+    	}
+    	
+    	
+        def leftDenotation(token: Tokens.Token): Option[(Int, AST.Expression => AST.Expression)] = {
+            leftDenotationTable get token.actual match {
+                case Some((prec, f)) => return Some(prec, f(this, _))
+                case _ => Unit
+            }
+            return token match {
+                case Tokens.Block(loc, actual, bracket, subtokens) => bracket match {
+                    case BackTick      => Some(5,  (ast) => { infixExpression(5, ast, new Expression(loc, subtokens).parse(0)) }) // null }) // like an operator
+                    case Paren         => Some(12, (ast) => { AST.Apply(loc, null, ast, new Expression(loc, subtokens).parseList(",")) })
+                    case Square        => Some(12, (ast) => { AST.Index(loc, null, ast, new Expression(loc, subtokens).parseList(",")) })
+                    case Brace         => errorUnexpectedToken(loc, "ICE: The compiler doesn't know how to parse types.") // Some(12, (ast) => { AST.HasType(loc, null, ast, null) })
+                    case ImplicitBrace => errorUnexpectedToken(loc, "ICE: The compiler doesn't know how to parse types.") // Some(12, (ast) => { AST.HasType(loc, null, ast, null) })
+                }
+                case Tokens.Operator(loc, actual) => errorUnexpectedToken(loc, "unrecognized operator")
+                case _ => None
+            }
+        }
+        
+        
+        def nullDenotation(token: Tokens.Token): AST.Expression = {
+            nullDenotationTable get token.actual  match {
+                case Some(f) => return f(this)
+                case _ => Unit
+            }
+    		return token match {
+                case Tokens.Block(loc, actual, bracket, subtokens) => bracket match {
+                    case Paren    => AST.Parenthesized(loc, null, new Expression(loc, subtokens).parseList(","))
+                    case Square   => AST.ArrayLiteral (loc, null, new Expression(loc, subtokens).parseList(","))
+                    case BackTick => errorUnexpectedToken(loc, "found a backtick sequence")
+                    case default  => errorUnexpectedToken(loc, "found a code block")
+                }
+                case Tokens.Comma(loc)                  => errorUnexpectedToken(loc, "found a comma")
+                case Tokens.Identifier(loc, actual)     => AST.Variable(loc, null, actual)
+                case Tokens.Integer(loc, actual, value) => AST.Integer(loc, null, actual, value)
+                case Tokens.Operator(loc, actual)       => errorUnexpectedToken(loc, "found an operator")
+                case Tokens.Reserved(loc, actual) =>
+                    actual match {
+                        case "addressOf" => AST.AddressOf(loc, null, parse(11))
+                        case "if"        => {
+                            val (bloc, bsubs) = requireBlock(Paren, "(")
+                            val cond = new Expression(bloc, bsubs).parse(0)
+                            val t = parse(0)
+                            requireReserved("else")
+                            val f = parse(0)
+                            AST.Conditional(loc, null, cond, t, f)
+                        }
+                    case "negate"    => AST.Apply(loc, null, AST.Variable(loc, null, "negate"), ArrayBuffer(parse(11)))
+                    case "valueAt"   => AST.ValueAt(loc, null, parse(11))
+                    case _           => errorUnexpectedToken(loc, "found " + actual)
+                }
+                case Tokens.Semicolon(loc) => errorUnexpectedToken(loc, "found a semicolon")
     		}
+        }
+    }
+    
+    
+    class Type() extends PrattParser[Types.Type] {
+        
     }
 }
 
@@ -82,15 +178,29 @@ sealed class Parser[T]
     
     
     /*
-    , nullDenotationFunction = \table loc tok ->
-        case (tok, Map.lookup (ugly tok) (nullDenotationTable table)) of
-            (_, Just d)                       -> d loc tok
-            (In3_1 (Identifier a), _)         -> return (Expr loc () $ Variable a)
-            (In3_1 (Token.Integer a), _)      -> return (Expr loc () $ AST.Integer a)
-            (In3_2 (TokenBlock Paren ts), _)  -> subexpression ")" ts
-            (In3_2 (TokenBlock Square ts), _) ->
-                expressionList ts >>= (return . Expr loc () . ArrayLiteral)
-            _                                 -> errorUnexpected loc "an expression" ("found " ++ pretty tok)
+infixExpression precedence text loc _ left = do
+    let (Expr lloc _ _) = left
+    (_, next) <- lookahead
+    extra <- case next of
+        Just (In3_2 (TokenBlock DotParen ts)) -> advanceToken >> expressionList ts
+        _ -> return []
+    right <- parse "an expression" precedence
+    return (Expr lloc () $ Apply (Expr loc () $ Variable text) (extra ++ [left, right]))
+
+	{ leftDenotationFunction = \table loc tok ->
+        case (tok, Map.lookup (ugly tok) (leftDenotationTable table)) of
+            (_, Just (prec, d))               -> Just (prec, d loc tok)
+            (In3_1 (Identifier a), _)         -> Just (50, infixExpression 50 a loc tok)
+            (In3_2 (TokenBlock Brace ts), _)  -> Just (10, \ast -> do
+                tau <- parseOn ts (once "a type" parseType)
+                return (Expr loc () (HasType (DeclaredType 0 [] (KnownType tau)) ast)))
+            (In3_2 (TokenBlock Paren ts), _)  -> Just (110, \ast -> do
+                args <- expressionList ts
+                return (Expr loc () $ Apply ast args))
+            (In3_2 (TokenBlock Square ts), _) -> Just (110, \ast -> do
+                index <- subexpression "]" ts
+                return (Expr loc () $ Index ast index))
+            _                                 -> Nothing
     */
     
     

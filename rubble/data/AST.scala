@@ -41,7 +41,7 @@ object AST {
         ( override val loc : Location
         , _tau             : Type
         , val base         : Expression
-        , val offset       : Expression
+        , val offset       : ArrayBuffer[Expression]
         ) extends Expression(loc, _tau) { }
     
     sealed case class Integer
