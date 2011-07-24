@@ -92,7 +92,13 @@ object AST {
             val depth: Int)
             extends Statement[Type](loc) { }
     
-    sealed case class Forever[Type](
+     sealed case class Call[Type](
+            override val loc : Location,
+            val function     : Expression[Type],
+            val argument     : Expression[Type])
+            extends Statement[Type](loc) { }
+    
+   sealed case class Forever[Type](
             override val loc: Location,
             val label: String,
             val block: ArrayBuffer[Statement[Type]])
@@ -103,6 +109,11 @@ object AST {
             val cond         : Expression[Type],
             val t            : ArrayBuffer[Statement[Type]],
             val f            : ArrayBuffer[Statement[Type]])
+            extends Statement[Type](loc) { }
+    
+    sealed case class Nested[Type](
+            override val loc : Location,
+            val statements   : ArrayBuffer[Statement[Type]])
             extends Statement[Type](loc) { }
     
     sealed case class Return[Type](

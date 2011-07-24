@@ -146,6 +146,18 @@ object Parser {
     }
     
     
+    object Expression {
+        def tuple(loc: Location, subtokens: ArrayBuffer[Tokens.Token]): AST.Expression[Unit] = {
+            val result = Expression(Context(loc, subtokens)).parseList(",")
+            return result.length match {
+                case 0 => AST.Variable(loc, Unit, "()")
+                case 1 => result(0)
+                case _ => AST.Tuple(loc, Unit, result)
+            }
+        }
+    }
+    
+    
     sealed case class Expression(
             override val context: Context)
             extends PrattParser[AST.Expression[Unit]](context) {
@@ -168,7 +180,7 @@ object Parser {
         def leftDenotation(token: Tokens.Token): Option[(Int, AST.Expression[Unit] => AST.Expression[Unit])] = token match {
             case Tokens.Block(loc, actual, bracket, subtokens) => bracket match {
                 case BackTick      => Some(5,  (ast) => { infixExpression(5, ast, Expression(Context(loc, subtokens)).parseAll) })
-                case Paren         => Some(12, (ast) => { AST.Apply(loc, Unit, ast, tuple(loc, subtokens)) })
+                case Paren         => Some(12, (ast) => { AST.Apply(loc, Unit, ast, Expression.tuple(loc, subtokens)) })
                 case Square        => Some(12, (ast) => { AST.Index(loc, Unit, ast, Expression(Context(loc, subtokens)).parseList(",")) })
                 case Brace         => errorUnexpectedToken(loc, "ICE: The compiler doesn't know how to parse types.") // Some(12, (ast) => { AST.HasType(loc, Unit, ast, null) })
                 case ImplicitBrace => errorUnexpectedToken(loc, "ICE: The compiler doesn't know how to parse types.") // Some(12, (ast) => { AST.HasType(loc, Unit, ast, null) })
@@ -182,7 +194,7 @@ object Parser {
         def nullDenotation(token: Tokens.Token): AST.Expression[Unit] = {
             return token match {
                 case Tokens.Block(loc, actual, bracket, subtokens) => bracket match {
-                    case Paren    => tuple(loc, subtokens)
+                    case Paren    => Expression.tuple(loc, subtokens)
                     case Square   => AST.ArrayLiteral (loc, Unit, Expression(Context(loc, subtokens)).parseList(","))
                     case BackTick => errorUnexpectedToken(loc, "a backtick sequence")
                     case _        => errorUnexpectedToken(loc, "a code block")
@@ -202,21 +214,11 @@ object Parser {
                             val f = parse(0)
                             AST.IfE(loc, Unit, cond, t, f)
                         }
-                    case "negate"    => AST.Apply(loc, Unit, AST.Variable(loc, Unit, "negate"), parse(11))
-                    case "valueAt"   => AST.ValueAt(loc, Unit, parse(11))
-                    case _           => errorUnexpectedToken(loc, actual)
+                    case "negate"  => AST.Apply(loc, Unit, AST.Variable(loc, Unit, "negate"), parse(11))
+                    case "valueAt" => AST.ValueAt(loc, Unit, parse(11))
+                    case _         => errorUnexpectedToken(loc, actual)
                 }
                 case Tokens.Semicolon(loc) => errorUnexpectedToken(loc, "a semicolon")
-            }
-        }
-        
-        
-        def tuple(loc: Location, subtokens: ArrayBuffer[Tokens.Token]): AST.Expression[Unit] = {
-            val result = Expression(Context(loc, subtokens)).parseList(",")
-            return result.length match {
-                case 0 => AST.Variable(loc, Unit, "()")
-                case 1 => result(0)
-                case _ => AST.Tuple(loc, Unit, result)
             }
         }
     }
@@ -228,6 +230,14 @@ object Parser {
             extends PrattParser[AST.Statement[Unit]](context) {
         
         
+        def assignment: AST.Statement[Unit] = {
+            // FIXME: multiple indirect assignment
+            // FIXME: Do I allow f(1)[5] = foo
+            // I do need *(f(1)) = foo
+            return errorUnexpectedToken(null, "")
+        }
+        
+        
         val expected = "a statement"
         
         
@@ -236,27 +246,57 @@ object Parser {
         
         def nullDenotation(token: Tokens.Token): AST.Statement[Unit] = token match {
             case Tokens.Block(loc, _, bracket, subs) if (bracket == Brace || bracket == ImplicitBrace) => {
-                // FIXME: Nested scope.
-                errorUnexpectedToken(loc, token.actual)
+                return AST.Nested(loc, Statement(Context(loc, subs), scopeStack :+ "").parseList(";"))
+            }
+            case Tokens.Block(loc, _, Paren, subs) => {
+                context.index -= 1
+                Expression(context).parse(0) match {
+                    case AST.Apply(aloc, _, f, arg) => return AST.Call(aloc, f, arg)
+                    case _ => errorUnexpectedToken(loc, token.actual)
+                }
             }
             case Tokens.Identifier(loc, actual) => {
-                // FIXME: Handle indirect assignment, multiple assignment, and function calls.
                 nextToken match {
-                    case Tokens.Comma(_) => {
-                        // FIXME: Multiple assignment.
-                        errorUnexpectedToken(loc, token.actual)
+                    case Tokens.Block(bloc, _, Square, subs) => {
+                        val i = context.index - 2
+                        
+                        // Skip subsequent square brackets.  If the next token
+                        // after that is a comma or an equals sign, it's an
+                        // assignment, otherwise it's a procedure call.
+                        while (true) {
+                            nextToken match {
+                                case Tokens.Block(_, _, Square, _) => Unit
+                                case Tokens.Comma(_) | Tokens.Reserved(_, "=") => {
+                                    context.index = i
+                                    return assignment
+                                }
+                                case _ => {
+                                    context.index = i
+                                    Expression(context).parse(0) match {
+                                        case AST.Apply(aloc, _, f, arg) => return AST.Call(aloc, f, arg)
+                                        case _ => errorUnexpectedToken(loc, token.actual)
+                                    }
+                                }
+                            }
+                        }
+                        throw new ParseError(context.loc.end, "ICE: The square bracket skipper should never fall off the end of its loop.")
                     }
-                    case Tokens.Reserved(_, "=") => {
-                        // FIXME: Assignment
-                        // return AST.Assign(loc, ArrayBuffer(token), ?)
-                        errorUnexpectedToken(loc, token.actual)
+                    case Tokens.Comma(_) | Tokens.Reserved(_, "=") => {
+                        context.index -= 2
+                        return assignment
                     }
                     case Tokens.Reserved(_, "forever") => {
-                        context.index += 1
                         val (bloc, bsubs) = requireBraces
                         return AST.Forever(loc, actual, Statement(Context(bloc, bsubs), scopeStack :+ actual).parseList(";"))
                     }
-                    case _ => errorUnexpectedToken(loc, token.actual) 
+                    case _ => {
+                        // It's probably a procedure call.
+                        context.index -= 2
+                        Expression(context).parse(0) match {
+                            case AST.Apply(aloc, _, f, arg) => return AST.Call(aloc, f, arg)
+                            case _ => errorUnexpectedToken(loc, token.actual)
+                        }
+                    }
                 }
             }
             case Tokens.Reserved(loc, actual) => actual match {
@@ -277,6 +317,10 @@ object Parser {
                         }
                         case _    => context.errorUnexpected(loc, "the end of the statement or a label", actual)
                     }
+                }
+                case "valueAt" => {
+                    // FIXME: Indirect call or assignment.
+                    errorUnexpectedToken(loc, token.actual)
                 }
                 case "if" => {
                     val (cloc, csubs) = requireBlock(Paren, "(")
@@ -337,12 +381,6 @@ object Parser {
 
     
     /*
-    statements:
-        procedure call (many expressions)
-        <lvalue> {, <lvalue>} = expression {, <expression>}
-        let/var
-    
-    
     
 initialDeclarationTable = Table
     { leftDenotationFunction = \table loc tok -> Nothing
