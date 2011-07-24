@@ -13,13 +13,13 @@ import scala.collection.mutable.ArrayBuffer
 
 object Parser {
     
-    private sealed case class Context(
+    sealed case class Context(
             val loc: Location,
             val tokens: ArrayBuffer[Tokens.Token],
             var index: Int = 0) {
         
         def errorUnexpected[A](loc: Location, expected: String, message: String): A = {
-    		throw new ParseError(loc, "The compiler needed " + expected + " but " + message + ".")
+            throw new ParseError(loc, "The compiler needed " + expected + " but " + message + ".")
         }
         
         
@@ -48,7 +48,7 @@ object Parser {
     }
     
     
-    private sealed abstract class PrattParser[T](val context: Context) {
+    sealed abstract class PrattParser[T](val context: Context) {
         
         protected val expected: String
         
@@ -58,8 +58,8 @@ object Parser {
          */
         def errorUnexpectedToken[A](loc: Location, message: String): A =
             context.errorUnexpected(loc, expected, "found " + message)
-    	
-    	
+        
+        
         protected def leftDenotation(token: Tokens.Token): Option[(Int, T => T)]
         
         
@@ -128,10 +128,10 @@ object Parser {
         
         
         protected def requireReserved(name: String) = {
-        	nextToken match {
-        	    case Tokens.Reserved(_, s) if s == name => Unit
-        	    case t => errorUnexpectedToken(t.loc, t.actual)
-        	}
+            nextToken match {
+                case Tokens.Reserved(_, s) if s == name => Unit
+                case t => errorUnexpectedToken(t.loc, t.actual)
+            }
         }
         
         
@@ -146,7 +146,7 @@ object Parser {
     }
     
     
-    private sealed case class Expression(
+    sealed case class Expression(
             override val context: Context)
             extends PrattParser[AST.Expression[Unit]](context) {
         
@@ -154,40 +154,35 @@ object Parser {
         protected val expected = "an expression"
         
         
-    	private def infixExpression(prec: Int, left: AST.Expression[Unit], center: AST.Expression[Unit]): AST.Expression[Unit] = {
-    	    val right = parse(prec)
-    	    val (op, args) = center match {
-    	        case AST.Apply(_, _, _op, extraArgs) => (_op, extraArgs += left += right)
-    	        case _ => (center, ArrayBuffer(left, right))
-    	    }
-    	    return AST.Apply(left.loc, Unit, op, args)
-    	}
-    	
-    	
+        private def infixExpression(prec: Int, left: AST.Expression[Unit], center: AST.Expression[Unit]): AST.Expression[Unit] = {
+            val right = parse(prec)
+            val (op, args) = center match {
+                case AST.Apply(_, _, _op, AST.Tuple(eloc, _, extras)) => (_op, extras += left += right)
+                case AST.Apply(_, _, _op, extra) => (_op, ArrayBuffer(extra, left, right))
+                case _ => (center, ArrayBuffer(left, right))
+            }
+            return AST.Apply(left.loc, Unit, op, AST.Tuple(left.loc, Unit, args))
+        }
+        
+        
         def leftDenotation(token: Tokens.Token): Option[(Int, AST.Expression[Unit] => AST.Expression[Unit])] = token match {
             case Tokens.Block(loc, actual, bracket, subtokens) => bracket match {
                 case BackTick      => Some(5,  (ast) => { infixExpression(5, ast, Expression(Context(loc, subtokens)).parseAll) })
-                case Paren         => Some(12, (ast) => { AST.Apply(loc, Unit, ast, Expression(Context(loc, subtokens)).parseList(",")) })
+                case Paren         => Some(12, (ast) => { AST.Apply(loc, Unit, ast, tuple(loc, subtokens)) })
                 case Square        => Some(12, (ast) => { AST.Index(loc, Unit, ast, Expression(Context(loc, subtokens)).parseList(",")) })
                 case Brace         => errorUnexpectedToken(loc, "ICE: The compiler doesn't know how to parse types.") // Some(12, (ast) => { AST.HasType(loc, Unit, ast, null) })
                 case ImplicitBrace => errorUnexpectedToken(loc, "ICE: The compiler doesn't know how to parse types.") // Some(12, (ast) => { AST.HasType(loc, Unit, ast, null) })
             }
+            // FIXME: Fill in the operators.
             case Tokens.Operator(loc, actual) => errorUnexpectedToken(loc, "an unrecognized operator")
             case _ => None
         }
         
         
         def nullDenotation(token: Tokens.Token): AST.Expression[Unit] = {
-    		return token match {
+            return token match {
                 case Tokens.Block(loc, actual, bracket, subtokens) => bracket match {
-                    case Paren    => {
-                        val tuple = Expression(Context(loc, subtokens)).parseList(",")
-                        tuple.length match {
-                            case 0 => AST.Variable(loc, Unit, "()")
-                            case 1 => tuple(0)
-                            case _ => AST.Parenthesized(loc, Unit, tuple)
-                        }
-                    }
+                    case Paren    => tuple(loc, subtokens)
                     case Square   => AST.ArrayLiteral (loc, Unit, Expression(Context(loc, subtokens)).parseList(","))
                     case BackTick => errorUnexpectedToken(loc, "a backtick sequence")
                     case _        => errorUnexpectedToken(loc, "a code block")
@@ -207,17 +202,27 @@ object Parser {
                             val f = parse(0)
                             AST.IfE(loc, Unit, cond, t, f)
                         }
-                    case "negate"    => AST.Apply(loc, Unit, AST.Variable(loc, Unit, "negate"), ArrayBuffer(parse(11)))
+                    case "negate"    => AST.Apply(loc, Unit, AST.Variable(loc, Unit, "negate"), parse(11))
                     case "valueAt"   => AST.ValueAt(loc, Unit, parse(11))
                     case _           => errorUnexpectedToken(loc, actual)
                 }
                 case Tokens.Semicolon(loc) => errorUnexpectedToken(loc, "a semicolon")
-    		}
+            }
+        }
+        
+        
+        def tuple(loc: Location, subtokens: ArrayBuffer[Tokens.Token]): AST.Expression[Unit] = {
+            val result = Expression(Context(loc, subtokens)).parseList(",")
+            return result.length match {
+                case 0 => AST.Variable(loc, Unit, "()")
+                case 1 => result(0)
+                case _ => AST.Tuple(loc, Unit, result)
+            }
         }
     }
     
     
-    private sealed case class Statement(
+    sealed case class Statement(
             override val context: Context,
             private val scopeStack: ArrayBuffer[String])
             extends PrattParser[AST.Statement[Unit]](context) {
@@ -248,8 +253,8 @@ object Parser {
                     }
                     case Tokens.Reserved(_, "forever") => {
                         context.index += 1
-                    	val (bloc, bsubs) = requireBraces
-                    	return AST.Forever(loc, actual, Statement(Context(bloc, bsubs), scopeStack :+ actual).parseList(";"))
+                        val (bloc, bsubs) = requireBraces
+                        return AST.Forever(loc, actual, Statement(Context(bloc, bsubs), scopeStack :+ actual).parseList(";"))
                     }
                     case _ => errorUnexpectedToken(loc, token.actual) 
                 }
@@ -312,7 +317,7 @@ object Parser {
     }
     
     
-    private sealed case class Type(
+    sealed case class Type(
             override val context:Context)
             extends PrattParser[Types.Type](context) { // loc, tokens)) {
         
@@ -395,7 +400,7 @@ initialDeclarationTable = Table
     }
 
 
-	// Infix expression prototypes.
+    // Infix expression prototypes.
     , leftDenotationTable = Map.fromList $
         map (\(name, (lprec, rprec, _)) -> (name, (lprec, infixExpression rprec name))) prototypes
 
