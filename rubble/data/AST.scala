@@ -83,7 +83,7 @@ object AST {
     
     sealed case class Assign[Type](
             override val loc : Location,
-            val assignee     : ArrayBuffer[LValue[Type]],
+            val lValues      : ArrayBuffer[LValue[Type]],
             val value        : Expression[Type])
             extends Statement[Type](loc) { }
     
@@ -109,6 +109,12 @@ object AST {
             val cond         : Expression[Type],
             val t            : ArrayBuffer[Statement[Type]],
             val f            : ArrayBuffer[Statement[Type]])
+            extends Statement[Type](loc) { }
+    
+    sealed case class Let[Type](
+            override val loc : Location,
+            val names        : ArrayBuffer[(String, Types.Mode)],
+            val value        : Expression[Type])
             extends Statement[Type](loc) { }
     
     sealed case class Nested[Type](

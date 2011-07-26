@@ -11,65 +11,72 @@ import scala.collection.mutable.HashMap
 import scala.collection.mutable.ArrayBuffer
 
 
-object Parser {
+sealed case class Parser(
+        val outerLoc: Location,
+        val tokens: ArrayBuffer[Tokens.Token]) {
     
-    sealed case class Context(
-            val loc: Location,
-            val tokens: ArrayBuffer[Tokens.Token],
-            var index: Int = 0) {
-        
-        def errorUnexpected[A](loc: Location, expected: String, message: String): A = {
-            throw new ParseError(loc, "The compiler needed " + expected + " but " + message + ".")
-        }
-        
-        
-        def isLive: Boolean = index < tokens.length
-        
-        
-        def lookahead: Option[Tokens.Token] =
-            if (isLive) Some(tokens(index)) else None
-        
-        
-        def nextToken(name: String): Tokens.Token = {
-            if (!isLive) {
-                errorUnexpected(new Location(loc.end, loc.end), name, "ran out of input")
-            }
-            index += 1
-            return tokens(index - 1)
-        }
+    var index: Int = 0
+    
+    
+    def errorUnexpected[A](loc: Location, expected: String, message: String): A = {
+        throw new ParseError(loc, "The compiler needed " + expected + " but " + message + ".")
     }
     
     
+    def isLive: Boolean = index < tokens.length
+    
+    
+    def lookahead: Option[Tokens.Token] = if (isLive) Some(tokens(index)) else None
+    
+    
+    def nextTokenExpecting(name: String): Tokens.Token = {
+        if (!isLive) {
+            errorUnexpected(new Location(outerLoc.end), name, "ran out of input")
+        }
+        index += 1
+        return tokens(index - 1)
+    }
+    
+    /*
     def parse(tokens: ArrayBuffer[Tokens.Token]): Unit = {
         // FIXME: Implement this.
         // validate that the token stream is not empty
         // construct a parse context
         return
     }
+    */
     
+    // FIXME: Move ParseContext back in.
     
-    sealed abstract class PrattParser[T](val context: Context) {
+    sealed abstract class PrattParser[T] {
         
-        protected val expected: String
+        val expected: String
         
         
-        /**
-         * See the comment for nextToken.
-         */
         def errorUnexpectedToken[A](loc: Location, message: String): A =
-            context.errorUnexpected(loc, expected, "found " + message)
+            errorUnexpected(loc, expected, "found " + message)
+        
+        
+        protected def inBraces(): Parser =
+            nextToken match {
+                case Tokens.Block(loc, _, bracket, subs) if (bracket == Brace || bracket == ImplicitBrace) => {
+                    return Parser(loc, subs)
+                }
+                case t => errorUnexpected(t.loc, "a statement block", "found " + t.actual)
+            }
+        
+        
+        protected def inParens: Parser =
+            nextToken match {
+                case Tokens.Block(loc, _, Paren, ts) => return Parser(loc, ts)
+                case t => errorUnexpectedToken(t.loc, t.actual)
+            }
         
         
         protected def leftDenotation(token: Tokens.Token): Option[(Int, T => T)]
         
         
-        /**
-         * This shouldn't be here, but we have to let the context know what
-         * the parser name is for proper error messages.  We can't write the
-         * name into the context itself, because the context will be passed
-         * between different parsers, each of which has a different name.
-         */
-        protected def nextToken: Tokens.Token = context.nextToken(expected)
+        protected def nextToken: Tokens.Token = nextTokenExpecting(expected)
         
         
         protected def nullDenotation(token: Tokens.Token): T
@@ -79,10 +86,10 @@ object Parser {
             val token = nextToken
             var ast = nullDenotation(token)
             
-            while (context.isLive) {
-                leftDenotation(context.tokens(context.index)) match {
+            while (isLive) {
+                leftDenotation(tokens(index)) match {
                     case Some((lbp, f)) if rbp < lbp => {
-                        context.index += 1
+                        index += 1
                         ast = f(ast)
                     }
                     case _ => return ast
@@ -92,10 +99,10 @@ object Parser {
         }
         
         
-        def parseAll(): T = {
+        def parseFull: T = {
             val result = parse(0)
-            if (context.isLive) {
-                val t = context.tokens(context.index)
+            if (isLive) {
+                val t = tokens(index)
                 errorUnexpectedToken(t.loc, t.actual)
             }
             return result
@@ -103,28 +110,31 @@ object Parser {
         
         
         def parseList(separator: String): ArrayBuffer[T] = {
-            if (context.tokens.length == 0) { return ArrayBuffer.empty[T] }
+            if (tokens.length == 0) { return ArrayBuffer.empty[T] }
             val result = ArrayBuffer.empty[T]
             while (true) {
                 result += parse(0)
-                if (context.isLive) {
-                    context.tokens(context.index) match {
-                        case t if t.actual != separator => context.errorUnexpected(t.loc, separator, t.actual)
-                        case _ => context.index += 1
+                if (isLive) {
+                    nextToken match {
+                        case t if t.actual == separator => Unit
+                        case t => errorUnexpected(t.loc, separator, t.actual)
                     }
                 } else {
                     return result
                 }
             }
-            throw new ParseError(context.loc.end, "ICE: parseList() should never fall off the end of its loop.")
+            throw new ParseError(outerLoc.end, "ICE: parseList() should never fall off the end of its loop.")
         }
         
         
-        protected def requireBlock(bracket: Bracket, name: String): (Location, ArrayBuffer[Tokens.Token]) =
-            nextToken match {
-                case Tokens.Block(loc, _, b, ts) if b == bracket => return (loc, ts)
-                case t => errorUnexpectedToken(t.loc, t.actual)
+        def parseListFull(separator: String): ArrayBuffer[T] = {
+            val result = parseList(separator)
+            if (isLive) {
+                val t = tokens(index)
+                errorUnexpectedToken(t.loc, t.actual)
             }
+            return result
+        }
         
         
         protected def requireReserved(name: String) = {
@@ -133,37 +143,12 @@ object Parser {
                 case t => errorUnexpectedToken(t.loc, t.actual)
             }
         }
-        
-        
-        protected def requireBraces(): (Location, ArrayBuffer[Tokens.Token]) = {
-            nextToken match {
-                case Tokens.Block(loc, _, bracket, subs) if (bracket == Brace || bracket == ImplicitBrace) => {
-                    return (loc, subs)
-                }
-                case t => context.errorUnexpected(context.loc, "a statement block", "found " + t.actual)
-            }
-        }
     }
     
     
-    object Expression {
-        def tuple(loc: Location, subtokens: ArrayBuffer[Tokens.Token]): AST.Expression[Unit] = {
-            val result = Expression(Context(loc, subtokens)).parseList(",")
-            return result.length match {
-                case 0 => AST.Variable(loc, Unit, "()")
-                case 1 => result(0)
-                case _ => AST.Tuple(loc, Unit, result)
-            }
-        }
-    }
-    
-    
-    sealed case class Expression(
-            override val context: Context)
-            extends PrattParser[AST.Expression[Unit]](context) {
+    object Expression extends PrattParser[AST.Expression[Unit]]{
         
-        
-        protected val expected = "an expression"
+        val expected = "an expression"
         
         
         private def infixExpression(prec: Int, left: AST.Expression[Unit], center: AST.Expression[Unit]): AST.Expression[Unit] = {
@@ -179,11 +164,11 @@ object Parser {
         
         def leftDenotation(token: Tokens.Token): Option[(Int, AST.Expression[Unit] => AST.Expression[Unit])] = token match {
             case Tokens.Block(loc, actual, bracket, subtokens) => bracket match {
-                case BackTick      => Some(5,  (ast) => { infixExpression(5, ast, Expression(Context(loc, subtokens)).parseAll) })
-                case Paren         => Some(12, (ast) => { AST.Apply(loc, Unit, ast, Expression.tuple(loc, subtokens)) })
-                case Square        => Some(12, (ast) => { AST.Index(loc, Unit, ast, Expression(Context(loc, subtokens)).parseList(",")) })
-                case Brace         => errorUnexpectedToken(loc, "ICE: The compiler doesn't know how to parse types.") // Some(12, (ast) => { AST.HasType(loc, Unit, ast, null) })
-                case ImplicitBrace => errorUnexpectedToken(loc, "ICE: The compiler doesn't know how to parse types.") // Some(12, (ast) => { AST.HasType(loc, Unit, ast, null) })
+                case BackTick      => Some((50,  (ast) => { infixExpression(50, ast, Parser(loc, subtokens).Expression.parseFull) }))
+                case Paren         => Some((120, (ast) => { AST.Apply(loc, Unit, ast, parseTuple(loc, subtokens)) }))
+                case Square        => Some((120, (ast) => { AST.Index(loc, Unit, ast, Parser(loc, subtokens).Expression.parseListFull(",")) }))
+                case Brace         => errorUnexpectedToken(loc, "ICE: The compiler doesn't know how to parse types.") // FIXME: Some(12, (ast) => { AST.HasType(loc, Unit, ast, null) })
+                case ImplicitBrace => errorUnexpectedToken(loc, "ICE: The compiler doesn't know how to parse types.") // FIXME: Some(12, (ast) => { AST.HasType(loc, Unit, ast, null) })
             }
             // FIXME: Fill in the operators.
             case Tokens.Operator(loc, actual) => errorUnexpectedToken(loc, "an unrecognized operator")
@@ -194,8 +179,8 @@ object Parser {
         def nullDenotation(token: Tokens.Token): AST.Expression[Unit] = {
             return token match {
                 case Tokens.Block(loc, actual, bracket, subtokens) => bracket match {
-                    case Paren    => Expression.tuple(loc, subtokens)
-                    case Square   => AST.ArrayLiteral (loc, Unit, Expression(Context(loc, subtokens)).parseList(","))
+                    case Paren    => parseTuple(loc, subtokens)
+                    case Square   => AST.ArrayLiteral (loc, Unit, Parser(loc, subtokens).Expression.parseListFull(","))
                     case BackTick => errorUnexpectedToken(loc, "a backtick sequence")
                     case _        => errorUnexpectedToken(loc, "a code block")
                 }
@@ -205,165 +190,227 @@ object Parser {
                 case Tokens.Operator(loc, actual)       => errorUnexpectedToken(loc, "an operator")
                 case Tokens.Reserved(loc, actual) =>
                     actual match {
-                        case "addressOf" => AST.AddressOf(loc, Unit, parse(11))
+                        case "addressOf" => AST.AddressOf(loc, Unit, parse(110))
                         case "if"        => {
-                            val (bloc, bsubs) = requireBlock(Paren, "(")
-                            val cond = Expression(Context(bloc, bsubs)).parseAll
+                            val cond = inParens.Expression.parseFull
                             val t = parse(0)
                             requireReserved("else")
                             val f = parse(0)
                             AST.IfE(loc, Unit, cond, t, f)
                         }
-                    case "negate"  => AST.Apply(loc, Unit, AST.Variable(loc, Unit, "negate"), parse(11))
-                    case "valueAt" => AST.ValueAt(loc, Unit, parse(11))
+                    case "negate"  => AST.Apply(loc, Unit, AST.Variable(loc, Unit, "negate"), parse(110))
+                    case "valueAt" => AST.ValueAt(loc, Unit, parse(110))
                     case _         => errorUnexpectedToken(loc, actual)
                 }
                 case Tokens.Semicolon(loc) => errorUnexpectedToken(loc, "a semicolon")
+            }
+        }
+        
+        
+        def parseOpenTuple: AST.Expression[Unit] = {
+            val result = Expression.parseList(",")
+            return result.length match {
+                case 0 => {
+                    val loc = if (isLive) tokens(index).loc else new Location(outerLoc.end, outerLoc.end)
+                    errorUnexpected(loc, "an expression", "nothing")
+                }
+                case 1 => result(0)
+                case _ => AST.Tuple(result(0).loc, Unit, result)
+            }
+        }
+        
+        
+        def parseTuple(loc: Location, subtokens: ArrayBuffer[Tokens.Token]): AST.Expression[Unit] = {
+            val result = Parser(loc, subtokens).Expression.parseListFull(",")
+            return result.length match {
+                case 0 => AST.Variable(loc, Unit, "()")
+                case 1 => result(0)
+                case _ => AST.Tuple(loc, Unit, result)
             }
         }
     }
     
     
     sealed case class Statement(
-            override val context: Context,
             private val scopeStack: ArrayBuffer[String])
-            extends PrattParser[AST.Statement[Unit]](context) {
-        
-        
-        def assignment: AST.Statement[Unit] = {
-            // FIXME: multiple indirect assignment
-            // FIXME: Do I allow f(1)[5] = foo
-            // I do need *(f(1)) = foo
-            return errorUnexpectedToken(null, "")
-        }
-        
+            extends PrattParser[AST.Statement[Unit]] {
         
         val expected = "a statement"
-        
         
         def leftDenotation(token: Tokens.Token): Option[(Int, AST.Statement[Unit] => AST.Statement[Unit])] = None
         
         
         def nullDenotation(token: Tokens.Token): AST.Statement[Unit] = token match {
             case Tokens.Block(loc, _, bracket, subs) if (bracket == Brace || bracket == ImplicitBrace) => {
-                return AST.Nested(loc, Statement(Context(loc, subs), scopeStack :+ "").parseList(";"))
+            	AST.Nested(loc, Parser(loc, subs).Statement(scopeStack :+ "").parseListFull(";"))
             }
             case Tokens.Block(loc, _, Paren, subs) => {
-                context.index -= 1
-                Expression(context).parse(0) match {
-                    case AST.Apply(aloc, _, f, arg) => return AST.Call(aloc, f, arg)
-                    case _ => errorUnexpectedToken(loc, token.actual)
-                }
+                parseCallOrAssignment(index-1)
             }
             case Tokens.Identifier(loc, actual) => {
                 nextToken match {
                     case Tokens.Block(bloc, _, Square, subs) => {
-                        val i = context.index - 2
-                        
-                        // Skip subsequent square brackets.  If the next token
-                        // after that is a comma or an equals sign, it's an
-                        // assignment, otherwise it's a procedure call.
-                        while (true) {
-                            nextToken match {
-                                case Tokens.Block(_, _, Square, _) => Unit
-                                case Tokens.Comma(_) | Tokens.Reserved(_, "=") => {
-                                    context.index = i
-                                    return assignment
-                                }
-                                case _ => {
-                                    context.index = i
-                                    Expression(context).parse(0) match {
-                                        case AST.Apply(aloc, _, f, arg) => return AST.Call(aloc, f, arg)
-                                        case _ => errorUnexpectedToken(loc, token.actual)
-                                    }
-                                }
-                            }
-                        }
-                        throw new ParseError(context.loc.end, "ICE: The square bracket skipper should never fall off the end of its loop.")
+                        parseCallOrAssignment(index - 2)
                     }
                     case Tokens.Comma(_) | Tokens.Reserved(_, "=") => {
-                        context.index -= 2
-                        return assignment
+                        index -= 2
+                        return parseAssignment
                     }
                     case Tokens.Reserved(_, "forever") => {
-                        val (bloc, bsubs) = requireBraces
-                        return AST.Forever(loc, actual, Statement(Context(bloc, bsubs), scopeStack :+ actual).parseList(";"))
+                        null
+                        // FIXME: AST.Forever(loc, actual, Statement(requireBraces, scopeStack :+ actual).parseList(";"))
                     }
                     case _ => {
-                        // It's probably a procedure call.
-                        context.index -= 2
-                        Expression(context).parse(0) match {
-                            case AST.Apply(aloc, _, f, arg) => return AST.Call(aloc, f, arg)
-                            case _ => errorUnexpectedToken(loc, token.actual)
-                        }
+                        index -= 2
+                        parseCall
                     }
                 }
             }
             case Tokens.Reserved(loc, actual) => actual match {
                 case "break" => {
-                    context.lookahead match {
+                    lookahead match {
                         case Some(Tokens.Identifier(loc, actual)) => {
                             nextToken
                             scopeStack.lastIndexOf(actual) match {
-                                case -1 => context.errorUnexpected(loc, expected, "the label does not correspond to any open scope blocks")
+                                case -1 => errorUnexpected(loc, expected, "the label does not correspond to any open scope blocks")
                                 case i  => return AST.Break(loc, scopeStack.size - i)
                             }
                         }
                         case Some(Tokens.Semicolon(_)) | None => {
                             scopeStack.length match {
-                                case 0 => context.errorUnexpected(loc, expected, "there are no open scope blocks")
+                                case 0 => errorUnexpected(loc, expected, "there are no open scope blocks")
                                 case _ => return AST.Break(loc, 1)
                             }
                         }
-                        case _    => context.errorUnexpected(loc, "the end of the statement or a label", actual)
+                        case _    => errorUnexpected(loc, "the end of the statement or a label", actual)
                     }
                 }
                 case "valueAt" => {
-                    // FIXME: Indirect call or assignment.
-                    errorUnexpectedToken(loc, token.actual)
+                    parseCallOrAssignment(index - 1)
                 }
                 case "if" => {
-                    val (cloc, csubs) = requireBlock(Paren, "(")
-                    val cond = Expression(Context(cloc, csubs)).parseAll
+                    val cond = Expression.parse(0)
                     
-                    val (tloc, tsubs) = requireBraces
-                    val trueBranch = Statement(Context(tloc, tsubs), scopeStack).parseList(";")
+                    val trueBranch = inBraces.Statement(scopeStack).parseList(";")
                     
-                    context.lookahead match {
+                    lookahead match {
                         case Some(Tokens.Reserved(_, "else")) => {
-                            context.index += 1
-                            val (floc, fsubs) = requireBraces
-                            val falseBranch = Statement(Context(tloc, tsubs), scopeStack).parseList(";")
+                            index += 1
+                            val falseBranch = inBraces.Statement(scopeStack).parseListFull(";")
                             return AST.IfS(loc, cond, trueBranch, falseBranch)
                         }
                         case _ => return AST.IfS(loc, cond, trueBranch, ArrayBuffer.empty[AST.Statement[Unit]])
                     }
                 }
                 case "forever" => {
-                    val (bloc, bsubs) = requireBraces
-                    return AST.Forever(loc, "", Statement(Context(bloc, bsubs), scopeStack :+ "").parseList(";"))
+                    return AST.Forever(loc, "", inBraces.Statement(scopeStack :+ "").parseList(";"))
                 }
                 case "let" => {
+                    nextToken match {
+                        case Tokens.Block(_, _, bracket, _) if (bracket == Brace || bracket == ImplicitBrace) => {
+                            errorUnexpected(new Location(1,1,1), "a let block", "ICE: don't know how to parse let blocks") // FIXME
+                        }
+                        case Tokens.Identifier(_, _) => {
+                            index -= 1
+                            parseLet
+                        }
+                        case t => errorUnexpected(t.loc, "a variable name", t.actual)
+                    }
                     // FIXME: let
+                    // let a: Type, b: var Type, c, d: Type = foo, bar, baz
+                    // let: a = foo
+                    //      b = bar
+                    // let { a = foo
+                    //       b = bar
+                    // }
+                    // So we're looking at a parameter list.
                     errorUnexpectedToken(loc, token.actual)
                 }
                 case "return" => {
-                    return AST.Return(loc, Expression(context).parse(0))
+                    return AST.Return(loc, Expression.parseOpenTuple)
                 }
                 case "var" => {
                     // FIXME: var
+                    nextToken match {
+                        case Tokens.Block(_, _, bracket, _) if (bracket == Brace || bracket == ImplicitBrace) => {
+                            errorUnexpected(new Location(1,1,1), "a var block", "ICE: don't know how to parse var blocks") // FIXME
+                        }
+                        case Tokens.Identifier(_, _) => {
+                            index -= 1
+                            val result = parseLet
+                            return null
+                            // FIXME: need to change the modes to Mutable and make sure they aren't already mutable
+                        }
+                        case t => errorUnexpected(t.loc, "a variable name", t.actual)
+                    }
                     errorUnexpectedToken(loc, token.actual)
                 }
                 case _ => errorUnexpectedToken(loc, token.actual)
             }
             case _ => errorUnexpectedToken(token.loc, token.actual)
         }
+        
+        
+        def parseAssignment: AST.Statement[Unit] = {
+            // FIXME: multiple indirect assignment
+            // FIXME: Do I allow f(1)[5] = foo
+            // I do need *(f(1)) = foo
+            // I eventually need (*f).foo = bar
+            
+            val loc = tokens(index).loc
+            val lValues = ArrayBuffer.empty[AST.LValue[Unit]]
+            
+            var equalsFound = false;
+            while (!equalsFound) {
+                errorUnexpectedToken(null, "")
+            }
+            return AST.Assign(loc, lValues, Expression.parseOpenTuple)
+        }
+        
+        
+        def parseCallOrAssignment(index_0: Int): AST.Statement[Unit] = {
+            while (isLive) {
+                val token = nextToken
+                token match {
+                    case Tokens.Block(_, _, Brace, _) | Tokens.Block(_, _, ImplicitBrace, _) => {
+                        errorUnexpectedToken(token.loc, token.actual)
+                    }
+                    case Tokens.Block(_, _, Paren, _) | Tokens.Block(_, _, Square, _) |
+                        Tokens.Identifier(_,_) | Tokens.Reserved(_, "valueAt") => Unit
+                    case Tokens.Comma(_) | Tokens.Reserved(_, "=") => {
+                        index = index_0
+                        return parseAssignment
+                    }
+                    case _ => {
+                        index = index_0
+                        return parseCall
+                    }
+                }
+            }
+            index = index_0
+            return parseCall
+        }
+        
+        
+        def parseCall: AST.Statement[Unit] = {
+            val index_0 = index
+            Expression.parse(0) match {
+                case AST.Apply(aloc, _, f, arg) => return AST.Call(aloc, f, arg)
+                case _ => {
+                    val token = tokens(index_0)
+                    errorUnexpectedToken(token.loc, token.actual)
+                }
+            }
+        }
+        
+        
+        def parseLet: AST.Statement[Unit] = {
+            errorUnexpectedToken(new Location(1,1,1), "ICE: Don't know how to parse let statements.")
+        }
     }
     
     
-    sealed case class Type(
-            override val context:Context)
-            extends PrattParser[Types.Type](context) { // loc, tokens)) {
+    object Type extends PrattParser[Types.Type] {
         
         
         val expected = "a type"
@@ -372,7 +419,7 @@ object Parser {
         def leftDenotation(token: Tokens.Token): Option[(Int, Types.Type => Types.Type)] = None
         
         /* FIXME: Fill in with the actual type parser */
-        def nullDenotation(token: Tokens.Token): Types.Type = errorUnexpectedToken(context.loc, token.actual)
+        def nullDenotation(token: Tokens.Token): Types.Type = errorUnexpectedToken(outerLoc, token.actual)
     }
     
     

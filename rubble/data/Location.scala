@@ -10,6 +10,8 @@ sealed case class Location
     
     def this(row: Int, endColumn: Int, length: Int) = this(Point(row, endColumn - length), Point(row, endColumn))
     
+    def this(p: Point) = this(p, p)
+    
     def before(): Location = {
         return new Location(start, start)
     }

@@ -86,11 +86,6 @@ class Lexer(private var s: String) {
             val block = lexBlockHelper("{", "}", Brace)
             return block
         }    
-        else if (c == ':') {
-            column += 1
-            s = s drop 1
-            return Block(new Location(row, column, 1), ":", ImplicitBrace, ArrayBuffer.empty[Token])
-        }    
         else if (c == '`') {
             return lexBlockHelper("`", "`", BackTick)
         }
@@ -108,7 +103,9 @@ class Lexer(private var s: String) {
             
             separated = false
             val loc = new Location(row, column, str.length)
-            return if (reservedWords contains str) Reserved(loc, str) else Identifier(loc, str)
+            return if (str == "do") (Block(loc, "do", ImplicitBrace, ArrayBuffer.empty[Token]))
+                else if (reservedWords contains str) Reserved(loc, str)
+                else Identifier(loc, str)
         }
         return null
     }
