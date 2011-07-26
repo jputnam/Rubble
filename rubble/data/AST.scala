@@ -26,6 +26,14 @@ object AST {
             val es           : ArrayBuffer[Expression[Type]])
             extends Expression[Type](loc, tau) { }
     
+    
+    sealed case class AsType[Type](
+            override val loc : Location,
+            override val tau : Type,
+            val value        : Expression[Type],
+            val declared     : Types.Type)
+            extends Expression[Type](loc, tau) { }
+    
     sealed case class IfE[Type](
             override val loc : Location,
             override val tau : Type,
@@ -79,6 +87,12 @@ object AST {
             extends LValue[Type] { }
     
     
+    
+    sealed case class Binding[Type](
+            loc   : Location,
+            names : ArrayBuffer[(String, Types.Type, Types.Mode)],
+            value : Expression[Type]) { }
+    
     sealed abstract class Statement[Type](val loc: Location) { }
     
     sealed case class Assign[Type](
@@ -113,8 +127,7 @@ object AST {
     
     sealed case class Let[Type](
             override val loc : Location,
-            val names        : ArrayBuffer[(String, Types.Mode)],
-            val value        : Expression[Type])
+            val bindings     : ArrayBuffer[Binding[Type]])
             extends Statement[Type](loc) { }
     
     sealed case class Nested[Type](
