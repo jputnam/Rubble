@@ -146,7 +146,9 @@ class Lexer(private var s: String) {
             
             separated = false
             val loc = new Location(row, column, str.length)
-            return if (reservedSymbols contains str) Reserved(loc, op) else Operator(loc, op)
+            return if (str == ":") Reserved(loc, "asType")
+                else if (reservedSymbols contains str) Reserved(loc, op)
+                else Operator(loc, op)
         }
         return null
     }

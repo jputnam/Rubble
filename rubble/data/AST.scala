@@ -5,6 +5,28 @@ import scala.collection.mutable.ArrayBuffer
 
 object AST {
     
+    sealed case class Binding[Type](
+            val loc   : Location,
+            val names : ArrayBuffer[(String, Types.Mode, Types.Type)],
+            val value : Expression[Type]) { }
+    
+    
+    sealed abstract class Declaration[Type](val loc: Location) { }
+    
+    sealed case class Def[Type](
+            override val loc : Location,
+            val name         : String,
+            val arguments    : ArrayBuffer[(String, Types.Mode, Types.Type)],
+            val resultType   : Types.Type,
+            val body         : ArrayBuffer[Statement[Type]])
+            extends Declaration[Type](loc) { }
+    
+    sealed case class GlobalLet[Type](
+            override val loc : Location,
+            val bindings     : ArrayBuffer[Binding[Type]])
+            extends Declaration[Type](loc) { }
+    
+    
     sealed abstract class Expression[Type](val loc: Location, val tau: Type) { }
     
     sealed case class AddressOf[Type](
@@ -26,7 +48,6 @@ object AST {
             val es           : ArrayBuffer[Expression[Type]])
             extends Expression[Type](loc, tau) { }
     
-    
     sealed case class AsType[Type](
             override val loc : Location,
             override val tau : Type,
@@ -46,7 +67,7 @@ object AST {
             override val loc : Location,
             override val tau : Type,
             val base         : Expression[Type],
-            val offset       : ArrayBuffer[Expression[Type]])
+            val offset       : Expression[Type])
             extends Expression[Type](loc, tau) { }
     
     sealed case class Integer[Type](
@@ -75,29 +96,35 @@ object AST {
             extends Expression[Type](loc, tau) { }
     
     
-    sealed abstract class LValue[Type] { }
+    sealed abstract class LValue[Type](val tau: Type) { }
     
     sealed case class Direct[Type](
-            name: String)
-            extends LValue[Type] { }
+            override val tau : Type,
+            val name         : String)
+            extends LValue[Type](tau) { }
+    
+    sealed case class IndexL[Type](
+            override val tau : Type,
+            val base         : LValue[Type],
+            val offset       : Expression[Type])
+            extends LValue[Type](tau) { }
     
     sealed case class Indirect[Type](
-            name: String,
-            offset: ArrayBuffer[Expression[Type]])
-            extends LValue[Type] { }
+            override val tau : Type,
+            val address      : Expression[Type])
+            extends LValue[Type](tau) { }
     
+    sealed case class TupleL[Type](
+            override val tau : Type,
+            val lValues      : ArrayBuffer[LValue[Type]])
+            extends LValue[Type](tau) { }
     
-    
-    sealed case class Binding[Type](
-            loc   : Location,
-            names : ArrayBuffer[(String, Types.Type, Types.Mode)],
-            value : Expression[Type]) { }
     
     sealed abstract class Statement[Type](val loc: Location) { }
     
     sealed case class Assign[Type](
             override val loc : Location,
-            val lValues      : ArrayBuffer[LValue[Type]],
+            val lValue       : LValue[Type],
             val value        : Expression[Type])
             extends Statement[Type](loc) { }
     
