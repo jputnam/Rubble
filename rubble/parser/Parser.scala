@@ -212,7 +212,7 @@ sealed case class Parser(
                 // The body.
                 val body = nextToken match {
                     case Tokens.Block(bloc, _, bracket, subtokens) if (bracket == Brace || bracket == ImplicitBrace) => {
-                        Parser(bloc, subtokens).Statement(ArrayBuffer()).parseListFull
+                        Parser(bloc, subtokens).Statement(ArrayBuffer.empty[String]).parseListFull
                     }
                     case t => errorUnexpected(t.loc, "the function body", t.actual)
                 }
@@ -220,7 +220,7 @@ sealed case class Parser(
                 AST.Def(loc, name, args, resultType, body)
             }
             case Tokens.Reserved(_, "let") | Tokens.Reserved(_, "var") => {
-                Statement(ArrayBuffer()).parseLet(token.loc) match {
+                Statement(ArrayBuffer.empty[String]).parseLet(token.loc) match {
                     case AST.Let(loc, bindings) => AST.GlobalLet(loc, bindings)
                 }
             }
