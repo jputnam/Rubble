@@ -15,7 +15,7 @@ class Lexer(private var s: String) {
     private var separated: Boolean = true
     
     
-    private def dropWhitespace(): Unit = {
+    private def dropWhitespace: Unit = {
         var workDone = true
         while (workDone) {
             workDone = false
@@ -64,7 +64,8 @@ class Lexer(private var s: String) {
             val tokens = lex(ArrayBuffer.empty[Token], bracket == BackTick)
             
             if ((s take 1) != close) {
-                throw new ParseError(row, column, 1, "Unclosed " + open + ".  " + (s take 1) + " was found instead.")
+                val message = if (s == "") "" else (".  " + (s take 1) + " was found instead.")
+                throw new ParseError(row, column, 1, "Unclosed " + open + "." + message)
             }
             s = s drop 1
             column += 1
@@ -95,7 +96,7 @@ class Lexer(private var s: String) {
     
     private val reservedWords = Set("def", "break", "else", "if", "forever", "return", "val", "var")
     
-    private def lexIdentifier(): Token = {
+    private def lexIdentifier: Token = {
         if ((s take 1) matches "[_a-zA-Z]") {
             val str = s takeWhile (c => c.toString matches "[_a-zA-Z0-9]")
             column += str.length
@@ -111,7 +112,7 @@ class Lexer(private var s: String) {
     }
     
     
-    private def lexInteger(): Token = {
+    private def lexInteger: Token = {
         val hasHyphen = separated && ((s charAt 0) == '-')
         val s1 = if (hasHyphen) s drop 1 else s
         
@@ -131,7 +132,7 @@ class Lexer(private var s: String) {
     
     private val reservedSymbols = Set("=", "addressOf", "negate", "valueAt")
     
-    private def lexOperator(): Token = {
+    private def lexOperator: Token = {
         var str = s takeWhile (c => c.toString matches """[!@$%\^\&*\-=+\\|<>/\?]""")
         if (str.length > 0) {
             s = s drop str.length
@@ -154,7 +155,7 @@ class Lexer(private var s: String) {
     }
     
     
-    private def lexSeparator(): Token = {
+    private def lexSeparator: Token = {
         if ((s charAt 0) == ',') {
             s = s drop 1
             column += 1
@@ -182,7 +183,7 @@ class Lexer(private var s: String) {
     }
     
     
-    def lex(): ArrayBuffer[Token] = {
+    def lex: ArrayBuffer[Token] = {
         val result = lex(ArrayBuffer.empty[Token], false)
         if (s != "") {
             val message = if (s take 1 matches ")\\]}") "Unmatched closing bracket." else "Unrecognized character."

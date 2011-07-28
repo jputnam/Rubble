@@ -102,12 +102,6 @@ class Layout private (private val tokens: ArrayBuffer[Token], private var index:
     
     
     private def layoutBrackets(): ArrayBuffer[Token] = {
-        // Validate that the token that closed the block is in a legal location.
-//        if (end.column <= semicolonColumn) {
-//            val loc = new Location(1,1,1)
-//            throw new ParseError(loc, "The statement ended before you closed all brackets.")
-//        }
-        
         layoutAny(ArrayBuffer.empty[Token]
             , { throw new ParseError(tokens(index).loc, "The statement ended before you closed the brackets.") }
             , { throw new ParseError(tokens(index).loc, "The statement ended before you closed the brackets.") }

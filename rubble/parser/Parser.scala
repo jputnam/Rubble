@@ -603,11 +603,3 @@ sealed case class Parser(
         }
     }
 }
-
-
-/*
-    // Infix expression prototypes.
-    , leftDenotationTable = Map.fromList $
-        map (\(name, (lprec, rprec, _)) -> (name, (lprec, infixExpression rprec name))) prototypes
-
-    */

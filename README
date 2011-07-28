@@ -1,3 +1,22 @@
+The source language is currently being changed.  I have found the Scala
+toolchain to be slow and unreliable.  I can accept slow, and I can put up
+with buggy, but unreliability is not acceptable.  This decision was not
+made lightly; I wanted to stick with Scala despite the slow compilation
+speed and the fact that doing a clean build magically made errors go away.
+Then I got this, and gave up:
+
+error: java.lang.NullPointerException
+	at scala.tools.nsc.typechecker.Typers$Typer.typedTypeConstructor(Typers.scala:4329)
+	at scala.tools.nsc.typechecker.Typers$Typer.typedTypeConstructor(Typers.scala:4353)
+	at scala.tools.nsc.typechecker.Typers$Typer.typedNew$1(Typers.scala:3185)
+	at scala.tools.nsc.typechecker.Typers$Typer.typed1(Typers.scala:3989)
+	at scala.tools.nsc.typechecker.Typers$Typer.typed(Typers.scala:4217)
+
+For the moment, I am going to try porting to Java.  Java will make writing
+the type checker rather painful; but anything is better than unreliable tools
+are not worth any convenience.  I cannot recommend Scala for any purpose.
+
+
 Rubble is a compiler project for a simplistic imperative programming language
 without garbage collection -- the sort of thing you would put together for a
 school project.  The only sophisticated feature slated for inclusion is type
