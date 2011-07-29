@@ -49,7 +49,7 @@ public final class Lexer {
     }
     
     
-    private final static String[] rwArray = { "break", "def", "else", "forever", "if", "let", "return", "var" };
+    private final static String[] rwArray = { "break", "def", "else", "forever", "if", "let", "return", "then", "var" };
     private final static ArrayList<String> reservedWords = new ArrayList<String>(Arrays.asList(rwArray));
     
     private int row;
@@ -123,7 +123,7 @@ public final class Lexer {
         index += 1;
         column += 1;
         separated = true;
-        ArrayList<Token> subtokens = lex(open == "`");
+        ArrayList<Token> subtokens = lex(open.equals("`"));
 
         if (!source.startsWith(close, index)) {
             String message = index >= source.length() ? "" : ("  " + source.charAt(index) + " was found instead.");
@@ -147,7 +147,7 @@ public final class Lexer {
             }
             separated = false;
             String identifier = source.substring(startIndex, index);
-            Token.TokenType tag = (identifier == "do") ? TokenType.Block
+            Token.TokenType tag = (identifier.equals("do")) ? TokenType.Block
                     : (reservedWords.contains(identifier)) ? TokenType.Reserved : TokenType.Identifier;
             return new Token(new Location(row, startColumn, column), identifier, tag);
         }
@@ -184,19 +184,19 @@ public final class Lexer {
         if (index == startIndex) { return null; }
         String op = source.substring(startIndex, index);
         Token.TokenType tag = TokenType.Operator;
-        if (source.length() > index + 1 && matchChar(identifierOrBlock, source.charAt(index))) {
-            if (op == "-") {
+        if (separated && source.length() > index + 1 && matchChar(identifierOrBlock, source.charAt(index + 1))) {
+            if (op.equals("-")) {
                 op = "negate";
                 tag = TokenType.Reserved;
-            } else if (op == "*") {
+            } else if (op.equals("*")) {
                 op = "valueAt";
                 tag = TokenType.Reserved;
-            } else if (op == "&") {
+            } else if (op.equals("&")) {
                 op = "addressOf";
                 tag = TokenType.Reserved;
             }
         }
-        if (op == ":") {
+        if (op.equals(":")) {
             op = "asType";
         }
         

@@ -21,9 +21,13 @@ public final class CompilerError extends Exception {
 		return new CompilerError(loc, "Lexical", message);
 	}
 	
-	public static CompilerError parse(Location loc, String message) {
-		return new CompilerError(loc, "Parse", message);
-	}
+    public static CompilerError parse(Location loc, String message) {
+        return new CompilerError(loc, "Parse", message);
+    }
+    
+    public static CompilerError type(Location loc, String message) {
+        return new CompilerError(loc, "Type", message);
+    }
 	
 	public String toString() {
 		return phase + " error at " + loc.pretty() + ".  " + message;
