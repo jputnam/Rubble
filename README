@@ -1,22 +1,3 @@
-The source language is currently being changed.  I have found the Scala
-toolchain to be slow and unreliable.  I can accept slow, and I can put up
-with buggy, but unreliability is not acceptable.  This decision was not
-made lightly; I wanted to stick with Scala despite the slow compilation
-speed and the fact that doing a clean build magically made errors go away.
-Then I got this, and gave up:
-
-error: java.lang.NullPointerException
-	at scala.tools.nsc.typechecker.Typers$Typer.typedTypeConstructor(Typers.scala:4329)
-	at scala.tools.nsc.typechecker.Typers$Typer.typedTypeConstructor(Typers.scala:4353)
-	at scala.tools.nsc.typechecker.Typers$Typer.typedNew$1(Typers.scala:3185)
-	at scala.tools.nsc.typechecker.Typers$Typer.typed1(Typers.scala:3989)
-	at scala.tools.nsc.typechecker.Typers$Typer.typed(Typers.scala:4217)
-
-For the moment, I am going to try porting to Java.  Java will make writing
-the type checker rather painful; but anything is better than unreliable tools
-are not worth any convenience.  I cannot recommend Scala for any purpose.
-
-
 Rubble is a compiler project for a simplistic imperative programming language
 without garbage collection -- the sort of thing you would put together for a
 school project.  The only sophisticated feature slated for inclusion is type
@@ -24,18 +5,25 @@ inference at the statement level as in C#.
 
 Source code should look roughly like this:
 
-def factorial(n UInt32) UInt32:
-    if (n == 0):
+def factorial(n : UInt32) UInt32:
+    if n == 0 then:
         return 1
     else:
         return n * factorial(n - 1)
 
+The overloading of : to mean a new block when it immediately follows something
+else and a type declaration otherwise is rather strange, but of all the
+choices I've considered, it's the one I dislike least.  For example, this is a
+toy compiler, so the language does not yet support user-defined types, but I
+will want to have something other than "do" to indicate the beginning of a
+layout block for records.
+
 Types are inferred using type class constraints, as in Haskell, but the set
-of type classes is currently fixed.  The type supported are to be the usual
-set of machine word types, the booleans, records, pointers to all of those,
-function pointers, some type of one-dimensional array, and possibly a unit
-type.  There will not be a string type; the only form of interaction with the
-outside world will be returning a value to the shell.
+of type classes is fixed because this is a toy language.  The type supported
+are the usual set of machine word types, the booleans, functions, pointers
+to all of those, some sort of one-dimensional array, and a unit type.  There
+will not be a string type; the only form of interaction with the outside world
+will be returning a value to the shell.
 
 There is a use case for two types of arrays.  The first type places a size_t
 size right before the first array element, which is useful, among other things,
@@ -55,14 +43,18 @@ forever:
     if (not(cond)): break
     body
 
-The syntax is not finalized.  I may implement Haskell-style function call
-syntax, which would translate this:
+The syntax is not finalized.  At present, I am trying a style where function
+application is indicated by putting the function next to its argument and
+associates to the right.  So this:
 
 foo(bar, baz, qux, (1/2 + 3) * 4) * fee(fi, fo, fum)
 
-to this:
+doesn't change, but this:
 
-foo bar baz qux ((1/2 + 3) * 4) * fee fi fo fum
+foo(bar(baz(qux)))
 
-In addition to being slightly shorter, it also reads better.  That approach
-would cause some difficulties when parsing, but it's probably fixable.
+becomes this:
+
+foo bar baz qux
+
+I don't know whether that will gain me anything.

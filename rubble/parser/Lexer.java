@@ -52,9 +52,6 @@ public final class Lexer {
     private final static String[] rwArray = { "break", "def", "else", "forever", "if", "let", "return", "then", "var" };
     private final static ArrayList<String> reservedWords = new ArrayList<String>(Arrays.asList(rwArray));
     
-    private final static String[] roArray = { ":", "->" };
-    private final static ArrayList<String> reservedOperators = new ArrayList<String>(Arrays.asList(roArray));
-    
     private int row;
     private int column;
     private String source;
@@ -203,7 +200,16 @@ public final class Lexer {
                 tag = Tag.Reserved;
             }
         }
-        if (reservedOperators.contains(op)) { tag = Tag.Reserved; }
+        if (op.equals(":")) {
+            if (separated) {
+                op = "asType";
+                tag = Tag.Reserved;
+            } else {
+                tag = Tag.Block;
+            }
+        } else if (op.equals("->")) {
+            tag = Tag.Reserved;
+        }
         
         separated = false;
         return new Token(new Location(row, startColumn, column), op, tag);

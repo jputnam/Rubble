@@ -10,7 +10,7 @@ public final class Token {
 		Block, Comma, Identifier, Number, Operator, Reserved, Semicolon
 	}
 	
-	public final static String IMPLICIT_BRACE = "do";
+	public final static String IMPLICIT_BRACE = ":";
 	private final static ArrayList<Token> NIL = new ArrayList<Token>();
 	
 	public final Location loc;
