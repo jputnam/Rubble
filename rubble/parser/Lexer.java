@@ -6,7 +6,7 @@ import java.util.Arrays;
 import rubble.data.CompilerError;
 import rubble.data.Location;
 import rubble.data.Token;
-import rubble.data.Token.TokenType;
+import rubble.data.Token.Tag;
 
 public final class Lexer {
     
@@ -51,6 +51,9 @@ public final class Lexer {
     
     private final static String[] rwArray = { "break", "def", "else", "forever", "if", "let", "return", "then", "var" };
     private final static ArrayList<String> reservedWords = new ArrayList<String>(Arrays.asList(rwArray));
+    
+    private final static String[] roArray = { ":", "->" };
+    private final static ArrayList<String> reservedOperators = new ArrayList<String>(Arrays.asList(roArray));
     
     private int row;
     private int column;
@@ -102,8 +105,13 @@ public final class Lexer {
     }
     
     private Token lexBlock(boolean inBackticks) throws CompilerError {
-        int c = source.charAt(index);
+        char c = source.charAt(index);
         switch (c) {
+        case '.':
+            if (index + 1 < source.length() && source.charAt(index) == '(') {
+                return lexBlockHelper(".(", ")");
+            }
+            break;
         case '(':
             return lexBlockHelper("(", ")");
         case '[':
@@ -112,9 +120,8 @@ public final class Lexer {
             return lexBlockHelper("{", "}");
         case '`':
             return inBackticks ? null : lexBlockHelper("`", "`");
-        default:
-            return null;
         }
+        return null;
     }
 
     private Token lexBlockHelper(String open, String close) throws CompilerError {
@@ -132,7 +139,7 @@ public final class Lexer {
         index += 1;
         column += 1;
         separated = false;
-        return new Token(new Location(startRow, startColumn, row, column), open, TokenType.Block, subtokens);
+        return new Token(new Location(startRow, startColumn, row, column), open, Tag.Block, subtokens);
     }
     
     private Token lexIdentifier() {
@@ -147,8 +154,8 @@ public final class Lexer {
             }
             separated = false;
             String identifier = source.substring(startIndex, index);
-            Token.TokenType tag = (identifier.equals("do")) ? TokenType.Block
-                    : (reservedWords.contains(identifier)) ? TokenType.Reserved : TokenType.Identifier;
+            Token.Tag tag = (identifier.equals("do")) ? Tag.Block
+                    : (reservedWords.contains(identifier)) ? Tag.Reserved : Tag.Identifier;
             return new Token(new Location(row, startColumn, column), identifier, tag);
         }
         return null;
@@ -170,7 +177,7 @@ public final class Lexer {
         }
         if (index == startIndex) { return null; }
         separated = false;
-        return new Token(new Location(row, startColumn, column), source.substring(startIndex, index), TokenType.Number);
+        return new Token(new Location(row, startColumn, column), source.substring(startIndex, index), Tag.Number);
     }
     
     private Token lexOperator() {
@@ -183,22 +190,20 @@ public final class Lexer {
         }
         if (index == startIndex) { return null; }
         String op = source.substring(startIndex, index);
-        Token.TokenType tag = TokenType.Operator;
-        if (separated && source.length() > index + 1 && matchChar(identifierOrBlock, source.charAt(index + 1))) {
+        Token.Tag tag = Tag.Operator;
+        if (separated && index + 1 < source.length() && matchChar(identifierOrBlock, source.charAt(index + 1))) {
             if (op.equals("-")) {
                 op = "negate";
-                tag = TokenType.Reserved;
+                tag = Tag.Reserved;
             } else if (op.equals("*")) {
                 op = "valueAt";
-                tag = TokenType.Reserved;
+                tag = Tag.Reserved;
             } else if (op.equals("&")) {
                 op = "addressOf";
-                tag = TokenType.Reserved;
+                tag = Tag.Reserved;
             }
         }
-        if (op.equals(":")) {
-            op = "asType";
-        }
+        if (reservedOperators.contains(op)) { tag = Tag.Reserved; }
         
         separated = false;
         return new Token(new Location(row, startColumn, column), op, tag);
@@ -209,12 +214,12 @@ public final class Lexer {
             index += 1;
             column += 1;
             separated = true;
-            return new Token(new Location(row, column - 1, column), ",", TokenType.Comma);
+            return new Token(new Location(row, column - 1, column), ",", Tag.Comma);
         } else if (source.startsWith(";", index)) {
             index += 1;
             column += 1;
             separated = true;
-            return new Token(new Location(row, column - 1, column), ";", TokenType.Semicolon);
+            return new Token(new Location(row, column - 1, column), ";", Tag.Semicolon);
         }
         return null;
     }

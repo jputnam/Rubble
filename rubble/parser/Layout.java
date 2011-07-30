@@ -5,7 +5,7 @@ import java.util.ArrayList;
 import rubble.data.CompilerError;
 import rubble.data.Location;
 import rubble.data.Token;
-import rubble.data.Token.TokenType;
+import rubble.data.Token.Tag;
 
 public final class Layout {
 
@@ -42,7 +42,7 @@ public final class Layout {
         
         public void onImplicitSemicolon(Location loc, ArrayList<Token> result, boolean permitSemicolon) throws CompilerError {
             if (permitSemicolon) {
-                result.add(new Token(loc, ";", TokenType.Semicolon));
+                result.add(new Token(loc, ";", Tag.Semicolon));
             }
         }
         
@@ -89,13 +89,13 @@ public final class Layout {
                     if (current.loc.endColumn - 1 < semicolonColumn) {
                         throw CompilerError.lexical(current.loc, "The closing } must be at or to the right of the semicolon column of its enclosing block.");
                     }
-                    result.add(new Token(current.loc, "{", TokenType.Block, new Layout(current.subtokens, 0).layoutBlock(true, semicolonColumn)));
+                    result.add(new Token(current.loc, "{", Tag.Block, new Layout(current.subtokens, 0).layoutBlock(true, semicolonColumn)));
                     permitSemicolon = true;
                     
                 } else if (current.source.equals(Token.IMPLICIT_BRACE)) {
                     ArrayList<Token> block = layoutBlock(false, semicolonColumn);
                     Location newLoc = (block.size() == 0) ? current.loc : new Location(current.loc.startRow, current.loc.startColumn, block.get(block.size() - 1).loc.endRow, block.get(block.size() - 1).loc.endColumn);
-                    result.add(new Token(newLoc, Token.IMPLICIT_BRACE, TokenType.Block, block));
+                    result.add(new Token(newLoc, Token.IMPLICIT_BRACE, Tag.Block, block));
                     permitSemicolon = true;
                     
                 } else {
@@ -121,7 +121,7 @@ public final class Layout {
         
         // Remove trailing semicolons.
         if (result.size() > 0) {
-            if (result.get(result.size() - 1).tag == TokenType.Semicolon) {
+            if (result.get(result.size() - 1).tag == Tag.Semicolon) {
                 result.remove(result.size() - 1);
             }
         }

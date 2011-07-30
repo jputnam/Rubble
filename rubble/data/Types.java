@@ -4,27 +4,59 @@ import java.util.ArrayList;
 
 public final class Types {
 
-    public final class Reference<Tau> {
+    public static final class ModalType {
         
         public final boolean isMutable;
-        public final Tau tau;
+        public final Type tau;
         
-        public Reference(boolean isMutable, Tau tau) {
+        public ModalType(boolean isMutable, Type tau) {
             this.isMutable = isMutable;
             this.tau = tau;
         }
     }
     
     
-    public enum Tag { Arrow, Buffer, Ground, Ptr, Tuple, TypeVar }
-
-    public enum GroundTag {
-        Boolean, Int8, Int16, Int32, Int64,
-        Unit, UInt8, UInt16, UInt32, Unit64
+    public static abstract class Nat {
+        
+        public final NatTag tag;
+        
+        public Nat(NatTag tag) {
+            this.tag = tag;
+        }
+    }
+    
+    public static enum NatTag { NatLiteral, NatVar }
+    
+    public static final class NatLiteral extends Nat {
+        
+        public final long value;
+        
+        public NatLiteral(long value) {
+            super(NatTag.NatLiteral);
+            this.value = value;
+        }
+    }
+    
+    public static final class NatVar extends Nat {
+        
+        public final String name;
+        
+        public NatVar(String name) {
+            super(NatTag.NatVar);
+            this.name = name;
+        }
     }
     
     
-    public abstract class Type {
+    public static enum Tag { Arrow, Buffer, Ground, Ptr, Tuple, TypeVar }
+
+    public static enum GroundTag {
+        Boolean, Int8, Int16, Int32, Int64,
+        Unit, UInt8, UInt16, UInt32, UInt64
+    }
+    
+    
+    public static abstract class Type {
         
         public final Tag tag;
         
@@ -33,31 +65,31 @@ public final class Types {
         }
     }
     
-    public final class Arrow extends Type {
+    public static final class Arrow extends Type {
         
-        public final Type domain;
+        public final ArrayList<ModalType> domain;
         public final Type codomain;
         
-        public Arrow(Type domain, Type codomain) {
+        public Arrow(ArrayList<ModalType> domain, Type codomain) {
             super(Tag.Arrow);
             this.domain = domain;
             this.codomain = codomain;
         }
     }
     
-    public final class Buffer extends Type {
+    public static final class Buffer extends Type {
         
-        public final Reference<Type> contained;
-        public final int size;
+        public final ModalType contained;
+        public final Nat size;
         
-        public Buffer(int size, Reference<Type> contained) {
+        public Buffer(Nat size, ModalType contained) {
             super(Tag.Buffer);
             this.contained = contained;
             this.size = size;
         }
     }
     
-    public final class Ground extends Type {
+    public static final class Ground extends Type {
         
         public final GroundTag groundTag;
         
@@ -67,17 +99,17 @@ public final class Types {
         }
     }
     
-    public final class Ptr extends Type {
+    public static final class Ptr extends Type {
         
-        public final Reference<Type> pointee;
+        public final ModalType pointee;
         
-        public Ptr(Reference<Type> pointee) {
+        public Ptr(ModalType pointee) {
             super(Tag.Ptr);
             this.pointee = pointee;
         }
     }
     
-    public final class Tuple extends Type {
+    public static final class Tuple extends Type {
         
         public final ArrayList<Type> members;
         
@@ -87,7 +119,7 @@ public final class Types {
         }
     }
     
-    public final class TypeVar extends Type {
+    public static final class TypeVar extends Type {
         
         public int id;
         

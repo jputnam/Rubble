@@ -6,7 +6,7 @@ import java.util.ArrayList;
 
 public final class Token {
     
-	public enum TokenType {
+	public static enum Tag {
 		Block, Comma, Identifier, Number, Operator, Reserved, Semicolon
 	}
 	
@@ -15,24 +15,24 @@ public final class Token {
 	
 	public final Location loc;
 	public final String source;
-	public final TokenType tag;
+	public final Tag tag;
 	public final ArrayList<Token> subtokens;
 	
-	public Token(Location loc, String source, TokenType tag) {
+	public Token(Location loc, String source, Tag tag) {
 		this.loc = loc;
 		this.source = source;
 		this.tag = tag;
 		this.subtokens = NIL;
 	}
 	
-	public Token(Location loc, String source, TokenType tag, ArrayList<Token> subtokens) {
+	public Token(Location loc, String source, Tag tag, ArrayList<Token> subtokens) {
 		this.loc = loc;
 		this.source = source;
 		this.tag = tag;
 		this.subtokens = subtokens;
 	}
 	
-	public Token(Location loc, String source, TokenType tag, Token... subtokens) {
+	public Token(Location loc, String source, Tag tag, Token... subtokens) {
 		this.loc = loc;
 		this.source = source;
 		this.tag = tag;
