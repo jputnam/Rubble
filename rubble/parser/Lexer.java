@@ -45,7 +45,7 @@ public final class Lexer {
         if (c < 32 || c > 128) { return false; }
         int ix = (c - 32) / 16;
         int bit = (c - 32) % 16;
-        return (charSet[ix] & (1 << bit)) == 1;
+        return (charSet[ix] & (1 << bit)) != 0;
     }
     
     
@@ -145,7 +145,7 @@ public final class Lexer {
             int startColumn = column;
             index += 1;
             column += 1;
-            while (matchChar(identifierCharacter, source.charAt(index))) {
+            while (index < source.length() && matchChar(identifierCharacter, source.charAt(index))) {
                 index += 1;
                 column += 1;
             }
@@ -163,12 +163,12 @@ public final class Lexer {
         int startColumn = column;
         
         // Handle negative numbers.
-        if (source.charAt(index) == '-' && source.length() > index + 1) {
-            if (!(source.charAt(index) > '0' && source.charAt(index) < '9')) { return null; }
+        if (separated && source.charAt(index) == '-' && index + 1 < source.length()) {
+            if (!(source.charAt(index + 1) > '0' && source.charAt(index + 1) < '9')) { return null; }
             index += 2;
             column += 2;
         }
-        while(source.charAt(index) > '0' && source.charAt(index) < '9') {
+        while(index < source.length() && source.charAt(index) > '0' && source.charAt(index) < '9') {
             index += 1;
             column += 1;
         }
@@ -181,14 +181,14 @@ public final class Lexer {
         int startIndex = index;
         int startColumn = column;
         
-        while (matchChar(operatorCharacter, source.charAt(index))) {
+        while (index < source.length() && matchChar(operatorCharacter, source.charAt(index))) {
             index += 1;
             column += 1;
         }
         if (index == startIndex) { return null; }
         String op = source.substring(startIndex, index);
         Token.Tag tag = Tag.Operator;
-        if (separated && index + 1 < source.length() && matchChar(identifierOrBlock, source.charAt(index + 1))) {
+        if (separated && index < source.length() && matchChar(identifierOrBlock, source.charAt(index))) {
             if (op.equals("-")) {
                 op = "negate";
                 tag = Tag.Reserved;

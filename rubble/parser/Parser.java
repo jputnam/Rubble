@@ -13,7 +13,7 @@ public abstract class Parser<T> {
     
     public static abstract class LeftDenotation<A> {
         
-        public int lbp = 0;
+        public abstract int lbp();
         public abstract A apply(A ast) throws CompilerError;
     }
     
@@ -82,7 +82,7 @@ public abstract class Parser<T> {
         
         while (context.isLive()) {
             LeftDenotation<T> ld = leftDenotation(context.tokens.get(context.index));
-            if (ld != null && rbp < ld.lbp) {
+            if (ld != null && rbp < ld.lbp()) {
                 context.index += 1;
                 ast = ld.apply(ast);
             } else {

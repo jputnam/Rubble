@@ -37,8 +37,8 @@ public final class Location {
 	}
 	
     public String toString() {
-        return "(new Location(" + startRow + "," + startColumn +
-            "," + endRow + "," + endColumn + "))";
+        return "(Location " + startRow + "," + startColumn +
+            "," + endRow + "," + endColumn + ")";
     }
 
 }

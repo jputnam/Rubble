@@ -9,7 +9,6 @@ import rubble.data.Types;
 import rubble.data.Types.GroundTag;
 
 
-// FIXME: Don't forget to figure out what to do about buffers of variable size.
 public final class Type extends Parser<Types.Type> {
     
     public Type(ParseContext context) {

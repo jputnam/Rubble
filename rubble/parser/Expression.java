@@ -22,13 +22,13 @@ public final class Expression extends Parser<AST.Expression<Unit>> {
     
     private LeftDenotation<AST.Expression<Unit>> application(final Token token, final boolean untupleArgument) throws CompilerError {
         return new LeftDenotation<AST.Expression<Unit>>() {
-            @SuppressWarnings("unused")
-            public int lbp = 12;
+            
+            public int lbp() { return 12; }
             private final int rbp = 11;
             
             public AST.Expression<Unit> apply(AST.Expression<Unit> left) throws CompilerError {
                 LeftDenotation<AST.Expression<Unit>> ld = (context.isLive()) ? leftDenotation(context.tokens.get(context.index)) : null;
-                if (ld != null && rbp < ld.lbp) {
+                if (ld != null && rbp < ld.lbp()) {
                     ArrayList<AST.Expression<Unit>> arguments = new ArrayList<AST.Expression<Unit>>();
                     arguments.add(ld.apply(nullDenotation(token)));
                     return new AST.Apply<Unit>(left.loc, Unit.Unit, left, arguments, untupleArgument);
@@ -41,8 +41,8 @@ public final class Expression extends Parser<AST.Expression<Unit>> {
     
     private LeftDenotation<AST.Expression<Unit>> infixExpression(final int precedence, final AST.Expression<Unit> center) throws CompilerError {
         return new LeftDenotation<AST.Expression<Unit>>() {
-            @SuppressWarnings("unused")
-            public int lbp = precedence;
+            
+            public int lbp() { return precedence; }
             
             public AST.Expression<Unit> apply(AST.Expression<Unit> left) throws CompilerError {
                 AST.Expression<Unit> right = parse(precedence);
@@ -77,8 +77,8 @@ public final class Expression extends Parser<AST.Expression<Unit>> {
                 return application(token, true);
             } else if (token.source.equals("[")) {
                 return new LeftDenotation<AST.Expression<Unit>>() {
-                    @SuppressWarnings("unused")
-                    public int lbp = 13;
+                    
+                    public int lbp() { return 13; }
                     
                     public AST.Expression<Unit> apply(AST.Expression<Unit> left) throws CompilerError {
                         return new AST.Index<Unit>(left.loc, Unit.Unit, left, (new Expression(token.loc, token.subtokens)).parseFull("]"));
@@ -118,11 +118,11 @@ public final class Expression extends Parser<AST.Expression<Unit>> {
             }
             throw errorUnexpectedToken(token.loc, "an unrecognized operator");
         case Reserved:
-            if (token.source.equals(":")) {
+            if (token.source.equals("asType")) {
                 final Types.Type tau = (new Type(context)).parse(11);
                 return new LeftDenotation<AST.Expression<Unit>>() {
-                    @SuppressWarnings("unused")
-                    public int lbp = 11;
+                    
+                    public int lbp() { return 11; }
                     
                     public AST.Expression<Unit> apply(AST.Expression<Unit> left) throws CompilerError {
                         return new AST.AsType<Unit>(left.loc, Unit.Unit, left, tau);
