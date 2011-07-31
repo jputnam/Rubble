@@ -3,6 +3,7 @@ package rubble.test;
 import java.util.ArrayList;
 
 import rubble.data.CompilerError;
+import rubble.data.Token;
 
 
 public final class TestHarness {
@@ -100,5 +101,13 @@ public final class TestHarness {
                 System.out.println(tr.message);
             }
         }
+    }
+    
+    public static String ugly(ArrayList<Token> tokens) {
+        StringBuilder result = new StringBuilder();
+        for (Token token: tokens) {
+            result.append(token.toString());
+        }
+        return result.toString();
     }
 }

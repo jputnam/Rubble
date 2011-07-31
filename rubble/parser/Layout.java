@@ -74,10 +74,10 @@ public final class Layout {
             Token current = tokens.get(index);
 
             if (current.loc.startColumn == semicolonColumn) {
-                actions.onImplicitSemicolon(current.loc, result, permitSemicolon);
+                actions.onImplicitSemicolon(current.loc.before(), result, permitSemicolon);
                 permitSemicolon = false;
             } else if (tokens.get(index).loc.startColumn < semicolonColumn) {
-                return actions.onImplicitEndOfBlock(current.loc, result);
+                return actions.onImplicitEndOfBlock(current.loc.before(), result);
             }
 
             index += 1;
@@ -87,20 +87,21 @@ public final class Layout {
                     // Remember that endColumn is one greater than the final
                     // column of the block.
                     if (current.loc.endColumn - 1 < semicolonColumn) {
-                        throw CompilerError.lexical(current.loc, "The closing } must be at or to the right of the semicolon column of its enclosing block.");
+                        throw CompilerError.lexical(current.loc.atEnd(), "The closing } must be at or to the right of the semicolon column of its enclosing block.");
                     }
                     result.add(new Token(current.loc, "{", Tag.Block, new Layout(current.subtokens, 0).layoutBlock(true, semicolonColumn)));
                     permitSemicolon = true;
                     
                 } else if (current.source.equals(Token.IMPLICIT_BRACE)) {
+                    permitSemicolon = false;
                     ArrayList<Token> block = layoutBlock(false, semicolonColumn);
+                    permitSemicolon = true;
                     Location newLoc = (block.size() == 0) ? current.loc : new Location(current.loc.startRow, current.loc.startColumn, block.get(block.size() - 1).loc.endRow, block.get(block.size() - 1).loc.endColumn);
                     result.add(new Token(newLoc, Token.IMPLICIT_BRACE, Tag.Block, block));
-                    permitSemicolon = true;
                     
                 } else {
                     if (current.loc.endColumn - 1 <= semicolonColumn) {
-                        throw CompilerError.lexical(current.loc, "The statement ended before you closed the brackets.");
+                        throw CompilerError.lexical(current.loc.atEnd(), "The statement ended before you closed the brackets.");
                     }
                     result.add(new Token(current.loc, current.source, current.tag, new Layout(current.subtokens, 0).layoutBrackets(semicolonColumn)));
                     permitSemicolon = true;

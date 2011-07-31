@@ -248,7 +248,7 @@ public final class Lexer {
         if (index < source.length()) {
             char c = source.charAt(index);
             String message = (c == ')' || c == ']' || c == '}') ? "Unmatched closing bracket." : "Unrecognized token.";
-            throw CompilerError.lexical(new Location(row, column), message);
+            throw CompilerError.lexical(new Location(row, column, column + 1), message);
         }
         return result;
     }

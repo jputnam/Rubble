@@ -28,6 +28,10 @@ public final class Location {
 		this.endColumn = endColumn;
 	}
 	
+	public Location atEnd() {
+	    return new Location(endRow, endColumn - 1, endRow, endColumn);
+	}
+	
 	public Location before() {
 		return new Location(startRow, startColumn, startColumn);
 	}

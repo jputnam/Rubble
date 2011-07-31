@@ -41,11 +41,11 @@ public final class Token {
 	
 	public String toString() {
 		StringBuilder result = new StringBuilder();
-		result.append("(Token " + loc.toString() + " {" + source + "} " + tag.toString());
+		result.append("(Token " + loc.toString() + " {" + source + "} " + tag.toString() + " {");
 		for (Token t: subtokens) {
-			result.append(", " + t.toString());
+			result.append(t.toString());
 		}
-		result.append(")");
+		result.append("})");
 		return result.toString();
 	}
 }
