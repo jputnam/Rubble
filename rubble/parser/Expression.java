@@ -8,6 +8,7 @@ import rubble.data.Location;
 import rubble.data.Types;
 import rubble.data.Unit;
 import rubble.data.Token;
+import rubble.data.AST.ExpressionTag;
 
 
 public final class Expression extends Parser<AST.Expression<Unit>> {
@@ -29,11 +30,9 @@ public final class Expression extends Parser<AST.Expression<Unit>> {
             public AST.Expression<Unit> apply(AST.Expression<Unit> left) throws CompilerError {
                 LeftDenotation<AST.Expression<Unit>> ld = (context.isLive()) ? leftDenotation(context.tokens.get(context.index)) : null;
                 if (ld != null && rbp < ld.lbp()) {
-                    ArrayList<AST.Expression<Unit>> arguments = new ArrayList<AST.Expression<Unit>>();
-                    arguments.add(ld.apply(nullDenotation(token)));
-                    return new AST.Apply<Unit>(left.loc, Unit.Unit, left, arguments, untupleArgument);
+                    return new AST.Apply<Unit>(left.loc, Unit.Unit, left, ld.apply(nullDenotation(token)));
                 } else {
-                    return new AST.Apply<Unit>(left.loc, Unit.Unit, left, (new Expression(token.loc, token.subtokens)).parseListFull(")"), false);
+                    return new AST.Apply<Unit>(left.loc, Unit.Unit, left, parseTuple(token.loc, token.subtokens));
                 }
             }
         };
@@ -49,14 +48,16 @@ public final class Expression extends Parser<AST.Expression<Unit>> {
                 switch (center.tag) {
                 case Apply:
                     AST.Apply<Unit> result = (AST.Apply<Unit>)center;
-                    result.arguments.add(left);
-                    result.arguments.add(right);
-                    return result;
+                    ArrayList<AST.Expression<Unit>> aArguments = result.argument.tag == ExpressionTag.Tuple ? ((AST.Tuple<Unit>)result.argument).es : new ArrayList<AST.Expression<Unit>>();
+                    aArguments.add(left);
+                    aArguments.add(right);
+                    return new AST.Apply<Unit>(result.loc, Unit.Unit, result.function, new AST.Tuple<Unit>(result.argument.loc, Unit.Unit, aArguments));
+                    
                 default:
-                    ArrayList<AST.Expression<Unit>> arguments = new ArrayList<AST.Expression<Unit>>();
-                    arguments.add(left);
-                    arguments.add(right);
-                    return new AST.Apply<Unit>(center.loc, Unit.Unit, center, arguments, false);
+                    ArrayList<AST.Expression<Unit>> bArguments = new ArrayList<AST.Expression<Unit>>();
+                    bArguments.add(left);
+                    bArguments.add(right);
+                    return new AST.Apply<Unit>(center.loc, Unit.Unit, center, new AST.Tuple<Unit>(left.loc, Unit.Unit, bArguments));
                 }
             }
         };
@@ -166,9 +167,7 @@ public final class Expression extends Parser<AST.Expression<Unit>> {
                 AST.Expression<Unit> falseBranch = parse(0);
                 return new AST.IfE<Unit>(token.loc, Unit.Unit, cond, trueBranch, falseBranch);
             } else if (token.source.equals("negate")) {
-                ArrayList<AST.Expression<Unit>> argument = new ArrayList<AST.Expression<Unit>>();
-                argument.add(parse(10));
-                return new AST.Apply<Unit>(token.loc, Unit.Unit, new AST.Variable<Unit>(token.loc, Unit.Unit, "negate"), argument, false);
+                return new AST.Apply<Unit>(token.loc, Unit.Unit, new AST.Variable<Unit>(token.loc, Unit.Unit, "negate"), parse(10));
             } else if (token.source.equals("valueAt")) {
                 return new AST.ValueAt<Unit>(token.loc, Unit.Unit, parse(10));
             }
@@ -192,7 +191,7 @@ public final class Expression extends Parser<AST.Expression<Unit>> {
         }
     }
     
-    public AST.Expression<Unit> parseTuple(Location loc, ArrayList<Token> tokens) throws CompilerError {
+    public static AST.Expression<Unit> parseTuple(Location loc, ArrayList<Token> tokens) throws CompilerError {
         ArrayList<AST.Expression<Unit>> result = (new Expression(loc, tokens)).parseListFull(")");
         switch (result.size()) {
         case 0:

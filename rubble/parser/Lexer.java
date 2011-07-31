@@ -104,11 +104,6 @@ public final class Lexer {
     private Token lexBlock(boolean inBackticks) throws CompilerError {
         char c = source.charAt(index);
         switch (c) {
-        case '.':
-            if (index + 1 < source.length() && source.charAt(index) == '(') {
-                return lexBlockHelper(".(", ")");
-            }
-            break;
         case '(':
             return lexBlockHelper("(", ")");
         case '[':

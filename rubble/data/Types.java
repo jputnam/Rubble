@@ -4,18 +4,6 @@ import java.util.ArrayList;
 
 public final class Types {
 
-    public static final class ModalType {
-        
-        public final boolean isMutable;
-        public final Type tau;
-        
-        public ModalType(boolean isMutable, Type tau) {
-            this.isMutable = isMutable;
-            this.tau = tau;
-        }
-    }
-    
-    
     public static abstract class Nat {
         
         public final NatTag tag;
@@ -58,54 +46,74 @@ public final class Types {
     
     public static abstract class Type {
         
+        public final boolean isMutable;
         public final Tag tag;
         
-        public Type(Tag tag) {
+        public Type(Tag tag, boolean isMutable) {
             this.tag = tag;
+            this.isMutable = isMutable;
         }
+        
+        public abstract Type mutable();
     }
     
     public static final class Arrow extends Type {
         
-        public final ArrayList<ModalType> domain;
+        public final Type domain;
         public final Type codomain;
         
-        public Arrow(ArrayList<ModalType> domain, Type codomain) {
-            super(Tag.Arrow);
+        public Arrow(Type domain, Type codomain, boolean isMutable) {
+            super(Tag.Arrow, isMutable);
             this.domain = domain;
             this.codomain = codomain;
+        }
+        
+        public Type mutable() {
+            return new Arrow(domain, codomain, true);
         }
     }
     
     public static final class Buffer extends Type {
         
-        public final ModalType contained;
+        public final Type contained;
         public final Nat size;
         
-        public Buffer(Nat size, ModalType contained) {
-            super(Tag.Buffer);
+        public Buffer(Nat size, Type contained, boolean isMutable) {
+            super(Tag.Buffer, isMutable);
             this.contained = contained;
             this.size = size;
+        }
+        
+        public Type mutable() {
+            return new Buffer(size, contained, true);
         }
     }
     
     public static final class Ground extends Type {
         
-        public final GroundTag groundTag;
+        public final GroundTag tag;
         
-        public Ground(GroundTag g) {
-            super(Tag.Ground);
-            groundTag = g;
+        public Ground(GroundTag tag, boolean isMutable) {
+            super(Tag.Ground, isMutable);
+            this.tag = tag;
+        }
+        
+        public Type mutable() {
+            return new Ground(tag, true);
         }
     }
     
     public static final class Ptr extends Type {
         
-        public final ModalType pointee;
+        public final Type pointee;
         
-        public Ptr(ModalType pointee) {
-            super(Tag.Ptr);
+        public Ptr(Type pointee, boolean isMutable) {
+            super(Tag.Ptr, isMutable);
             this.pointee = pointee;
+        }
+        
+        public Type mutable() {
+            return new Ptr(pointee, true);
         }
     }
     
@@ -113,9 +121,13 @@ public final class Types {
         
         public final ArrayList<Type> members;
         
-        public Tuple(ArrayList<Type> members) {
-            super(Tag.Tuple);
+        public Tuple(ArrayList<Type> members, boolean isMutable) {
+            super(Tag.Tuple, isMutable);
             this.members = members;
+        }
+        
+        public Type mutable() {
+            return new Tuple(members, true);
         }
     }
     
@@ -123,9 +135,13 @@ public final class Types {
         
         public int id;
         
-        public TypeVar(int id) {
-            super(Tag.TypeVar);
+        public TypeVar(int id, boolean isMutable) {
+            super(Tag.TypeVar, isMutable);
             this.id = id;
+        }
+        
+        public Type mutable() {
+            return new TypeVar(id, true);
         }
     }
 }

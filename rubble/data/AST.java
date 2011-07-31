@@ -17,16 +17,28 @@ public final class AST {
             this.references = references;
             this.value = value;
         }
+        
+        public String toString() {
+            String refs = "";
+            for (Reference r: references) {
+                refs += r.toString();
+            }
+            return "(Binding " + loc.toString() + refs + value.toString() + ")";
+        }
     }
     
     public static final class Reference {
         
         public final String name;
-        public final Types.ModalType modalType;
+        public final Types.Type type;
         
-        public Reference(String name, Types.ModalType modalType) {
+        public Reference(String name, Types.Type type) {
             this.name = name;
-            this.modalType = modalType;
+            this.type = type;
+        }
+        
+        public String toString() {
+            return "{" + name + " " + type.toString() + "}";
         }
     }
     
@@ -58,6 +70,18 @@ public final class AST {
             this.returnType = returnType;
             this.body = body;
         }
+        
+        public String toString() {
+            String args = "";
+            for (Reference r: arguments) {
+                args += r.toString();
+            }
+            String bodyString = "";
+            for (Statement<Type> s: body) {
+                bodyString += s.toString();
+            }
+            return "(Def " + loc.toString() + " " + name + " " + args + " : " + returnType.toString() + "{" + bodyString + "})";
+        }
     }
     
     public static final class GlobalLet<Type> extends Declaration<Type> {
@@ -67,6 +91,14 @@ public final class AST {
         public GlobalLet(Location loc, ArrayList<Binding<Type>> bindings) {
             super(loc, DeclarationTag.GlobalLet);
             this.bindings = bindings;
+        }
+        
+        public String toString() {
+            String bs = "";
+            for (Binding<Type> b: bindings) {
+                bs += b.toString();
+            }
+            return "(GlobalLet " + loc.toString() + " " + bs + ")";
         }
     }
     
@@ -93,19 +125,24 @@ public final class AST {
             this.value = value;
         }
         
+        public String toString() {
+            return "(& " + loc.toString() + " " + value.toString() + ")";
+        }
     }
     
     public static final class Apply<Tau> extends Expression<Tau> {
         
         public final Expression<Tau> function;
-        public final ArrayList<Expression<Tau>> arguments;
-        public final boolean untupleArgument;
+        public final Expression<Tau> argument;
         
-        public Apply(Location loc, Tau tau, Expression<Tau> function, ArrayList<Expression<Tau>> arguments, boolean untupleArgument) {
+        public Apply(Location loc, Tau tau, Expression<Tau> function, Expression<Tau> argument) {
             super(loc, tau, ExpressionTag.Apply);
             this.function = function;
-            this.arguments = arguments;
-            this.untupleArgument = untupleArgument;
+            this.argument = argument;
+        }
+        
+        public String toString() {
+            return "(Apply " + loc.toString() + " " + function.toString() + " " + argument.toString() + ")";
         }
     }
     
@@ -119,6 +156,10 @@ public final class AST {
             this.value = value;
             this.type = type;
         }
+        
+        public String toString() {
+            return "(AsType " + value.toString() + " : " + type.toString() + ")";
+        }
     }
     
     public static final class BufferLiteral<Tau> extends Expression<Tau> {
@@ -128,6 +169,14 @@ public final class AST {
         public BufferLiteral(Location loc, Tau tau, ArrayList<Expression<Tau>> es) {
             super(loc, tau, ExpressionTag.BufferLiteral);
             this.es = es;
+        }
+        
+        public String toString() {
+            String ess = "";
+            for (Expression<Tau> e: es) {
+                ess += e.toString();
+            }
+            return "[" + ess + "]";
         }
     }
     
@@ -143,6 +192,10 @@ public final class AST {
             this.trueBranch = trueBranch;
             this.falseBranch = falseBranch;
         }
+        
+        public String toString() {
+            return "(IfE " + cond.toString() + " " + trueBranch.toString() + " " + falseBranch.toString() + ")";
+        }
     }
     
     public static final class Index<Tau> extends Expression<Tau> {
@@ -154,6 +207,10 @@ public final class AST {
             super(loc, tau, ExpressionTag.Index);
             this.base = base;
             this.offset = offset;
+        }
+        
+        public String toString() {
+            return "(Index " + base.toString() + " " + offset.toString() + ")";
         }
     }
     
@@ -169,6 +226,10 @@ public final class AST {
         public boolean isPositive() {
             return number.charAt(0) != '-' && !(number.equals("0"));
         }
+        
+        public String toString() {
+            return "(" + number + ")";
+        }
     }
     
     public static final class Tuple<Tau> extends Expression<Tau> {
@@ -178,6 +239,14 @@ public final class AST {
         public Tuple(Location loc, Tau tau, ArrayList<Expression<Tau>> es) {
             super(loc, tau, ExpressionTag.Tuple);
             this.es = es;
+        }
+        
+        public String toString() {
+            String ess = "";
+            for (Expression<Tau> e: es) {
+                ess += e.toString();
+            }
+            return "(" + ess + ")";
         }
     }
     
@@ -189,6 +258,10 @@ public final class AST {
             super(loc, tau, ExpressionTag.ValueAt);
             this.value = value;
         }
+        
+        public String toString() {
+            return "(* " + loc.toString() + " " + value.toString() + ")";
+        }
     }
     
     public static final class Variable<Tau> extends Expression<Tau> {
@@ -198,6 +271,10 @@ public final class AST {
         public Variable(Location loc, Tau tau, String name) {
             super(loc, tau, ExpressionTag.Variable);
             this.name = name;
+        }
+        
+        public String toString() {
+            return "(Var " + name + ")";
         }
     }
     
@@ -225,6 +302,10 @@ public final class AST {
             super(loc, tau, LValueTag.Direct);
             this.name = name;
         }
+        
+        public String toString() {
+            return "(Direct " + name + ")";
+        }
     }
     
     public static final class IndexL<Type> extends LValue<Type>{
@@ -237,6 +318,10 @@ public final class AST {
             this.base = base;
             this.offset = offset;
         }
+        
+        public String toString() {
+            return "(IndexL " + base.toString() + "[" + offset.toString() + "])";
+        }
     }
     
     public static final class Indirect<Type> extends LValue<Type> {
@@ -247,6 +332,10 @@ public final class AST {
             super(loc, tau, LValueTag.Indirect);
             this.address = address;
         }
+        
+        public String toString() {
+            return "(Indirect " + address.toString() + ")";
+        }
     }
     
     public static final class TupleL<Type> extends LValue<Type> {
@@ -256,6 +345,14 @@ public final class AST {
         public TupleL(Location loc, Type tau, ArrayList<LValue<Type>> lValues) {
             super(loc, tau, LValueTag.TupleL);
             this.lValues = lValues;
+        }
+        
+        public String toString() {
+            String lvs = "";
+            for (LValue<Type> l: lValues) {
+                lvs += l.toString();
+            }
+            return "(TupleL " + lvs + ")";
         }
     }
     
@@ -283,6 +380,10 @@ public final class AST {
             this.lValue = lValue;
             this.value = value;
         }
+        
+        public String toString() {
+            return "(Assign " + lValue.toString() + " " + value.toString() + ")";
+        }
     }
     
     public static final class Break<Type> extends Statement<Type> {
@@ -293,17 +394,25 @@ public final class AST {
             super(loc, StatementTag.Break);
             this.depth = depth;
         }
+        
+        public String toString() {
+            return "(Break " + depth + ")";
+        }
     }
     
     public static final class Call<Type> extends Statement<Type> {
         
         public final Expression<Type> function;
-        public final ArrayList<Expression<Type>> arguments;
+        public final Expression<Type> argument;
         
-        public Call(Location loc, Expression<Type> function, ArrayList<Expression<Type>> arguments) {
+        public Call(Location loc, Expression<Type> function, Expression<Type> argument) {
             super(loc, StatementTag.Call);
             this.function = function;
-            this.arguments = arguments;
+            this.argument = argument;
+        }
+        
+        public String toString() {
+            return "(Call " + function.toString() + " " + argument.toString() + ")";
         }
     }
     
@@ -316,6 +425,14 @@ public final class AST {
             super(loc, StatementTag.Forever);
             this.label = label;
             this.block = block;
+        }
+        
+        public String toString() {
+            String bs = "";
+            for (Statement<Type> b: block) {
+                bs += b.toString();
+            }
+            return "(Forever " + bs + ")";
         }
     }
     
@@ -331,6 +448,18 @@ public final class AST {
             this.trueBranch = trueBranch;
             this.falseBranch = falseBranch;
         }
+        
+        public String toString() {
+            String ts = "";
+            for (Statement<Type> t: trueBranch) {
+                ts += t.toString();
+            }
+            String fs = "";
+            for (Statement<Type> f: falseBranch) {
+                fs += f.toString();
+            }
+            return "(IfS " + cond.toString() + " " + ts + " " + fs + ")";
+        }
     }
     
     public static final class Let<Type> extends Statement<Type> {
@@ -340,6 +469,14 @@ public final class AST {
         public Let(Location loc, ArrayList<Binding<Type>> bindings) {
             super(loc, StatementTag.Let);
             this.bindings = bindings;
+        }
+        
+        public String toString() {
+            String bs = "";
+            for (Binding<Type> b: bindings) {
+                bs += b.toString();
+            }
+            return "(Let " + bs + ")";
         }
     }
     
@@ -351,6 +488,14 @@ public final class AST {
             super(loc, StatementTag.Nested);
             this.statements = statements;
         }
+        
+        public String toString() {
+            String ss = "";
+            for (Statement<Type> s: statements) {
+                ss += s.toString();
+            }
+            return "(Nested " + ss + ")";
+        }
     }
     
     public static final class Return<Type> extends Statement<Type> {
@@ -360,6 +505,10 @@ public final class AST {
         public Return(Location loc, Expression<Type> value) {
             super(loc, StatementTag.Return);
             this.value = value;
+        }
+        
+        public String toString() {
+            return "(Return " + value.toString() + ")";
         }
     }
 }

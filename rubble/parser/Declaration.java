@@ -37,7 +37,7 @@ public final class Declaration extends Parser<AST.Declaration<Unit>> {
             if (!argumentToken.source.equals("(")) {
                 throw ParseContext.errorUnexpected(argumentToken.loc, "an argument list", "found " + argumentToken.source);
             }
-            ArrayList<AST.Reference> arguments = Reference.propagateTypes((new Reference(argumentToken.loc, argumentToken.subtokens)).parseListFull(")"));
+            ArrayList<AST.Reference> arguments = Reference.parse(new ParseContext(argumentToken.loc, argumentToken.subtokens));
             
             // The return type
             Types.Type returnType = (new Type(context)).parse(0);
@@ -50,9 +50,6 @@ public final class Declaration extends Parser<AST.Declaration<Unit>> {
         } if (token.source == "let") {
             AST.Let<Unit> let = (new Statement(context)).parseLet(token.loc);
             return new AST.GlobalLet<Unit>(let.loc, let.bindings);
-        } if (token.source == "var") {
-            AST.Let<Unit> var = (new Statement(context)).parseVar(token.loc);
-            return new AST.GlobalLet<Unit>(var.loc, var.bindings);
         }
         throw errorUnexpectedToken(token.loc, token.source);
     }

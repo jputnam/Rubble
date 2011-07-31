@@ -6,7 +6,6 @@ import rubble.data.AST;
 import rubble.data.CompilerError;
 import rubble.data.Location;
 import rubble.data.Token;
-import rubble.data.Types;
 import rubble.data.Unit;
 
 
@@ -133,8 +132,6 @@ public final class Statement extends Parser<AST.Statement<Unit>> {
                 return new AST.Return<Unit>(token.loc, (new Expression(context).parseOpenTuple()));
             } else if (token.source.equals("valueAt")) {
                 return parseCallOrAssignment(token);
-            } else if (token.source.equals("var")) {
-                return parseVar(token.loc);
             }
             throw errorUnexpectedToken(token.loc, token.source);
         default:
@@ -148,7 +145,7 @@ public final class Statement extends Parser<AST.Statement<Unit>> {
         Token lookahead = context.lookahead();
         if (lookahead == null || lookahead.tag == Token.Tag.Semicolon) {
             if (ast.tag == AST.ExpressionTag.Apply) {
-                return new AST.Call<Unit>(token.loc, ((AST.Apply<Unit>)ast).function, ((AST.Apply<Unit>)ast).arguments);
+                return new AST.Call<Unit>(token.loc, ((AST.Apply<Unit>)ast).function, ((AST.Apply<Unit>)ast).argument);
             }
             throw errorUnexpectedToken(token.loc, token.source);
         } else if (lookahead.source.equals("=")) {
@@ -171,19 +168,5 @@ public final class Statement extends Parser<AST.Statement<Unit>> {
             return new AST.Let<Unit>(loc, bindings);
         }
         throw ParseContext.errorUnexpected(loc, "an identifier or binding block", lookahead.source);
-    }
-    
-    public AST.Let<Unit> parseVar(Location loc) throws CompilerError {
-        AST.Let<Unit> let = parseLet(loc);
-        for (AST.Binding<Unit> binding: let.bindings) {
-            for (int i = 0; i < binding.references.size(); i++) {
-                AST.Reference ref = binding.references.get(i);
-                if (ref.modalType.isMutable) {
-                    throw CompilerError.parse(loc, ref.name + " was marked mutable; variables introduced in the var statement cannot be marked as var.");
-                }
-                binding.references.set(i, new AST.Reference(ref.name, new Types.ModalType(true, ref.modalType.tau)));
-            }
-        }
-        return let;
     }
 }

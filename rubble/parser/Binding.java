@@ -27,7 +27,7 @@ public final class Binding extends Parser<AST.Binding<Unit>> {
         switch(token.tag) {
         case Identifier:
             context.index -= 1;
-            ArrayList<AST.Reference> names = Reference.propagateTypes((new Reference(context)).parseList());
+            ArrayList<AST.Reference> names = Reference.parse(context);
             if (names.size() == 0) {
                 throw ParseContext.errorUnexpected(token.loc, "a variable binding", "did not find one");
             }
