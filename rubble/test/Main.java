@@ -8,6 +8,8 @@ public class Main {
         TestHarness.testAll(TestLexer.cases);
         System.out.print("\nTestLayout: ");
         TestHarness.testAll(TestLayout.cases);
+        System.out.print("\nTestParser: ");
+        TestHarness.testAll(TestParser.cases);
     }
     
 }

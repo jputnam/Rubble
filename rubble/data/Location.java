@@ -28,6 +28,10 @@ public final class Location {
 		this.endColumn = endColumn;
 	}
 	
+	public Location(Location start, Location end) {
+	    this(start.startRow, start.startColumn, end.endRow, end.endColumn);
+	}
+	
 	public Location atEnd() {
 	    return new Location(endRow, endColumn - 1, endRow, endColumn);
 	}
@@ -41,8 +45,8 @@ public final class Location {
 	}
 	
     public String toString() {
-        return "(Location " + startRow + "," + startColumn +
-            "," + endRow + "," + endColumn + ")";
+        return "@" + startRow + "," + startColumn +
+            "," + endRow + "," + endColumn;
     }
 
 }

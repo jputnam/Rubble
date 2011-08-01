@@ -7,6 +7,7 @@ import rubble.data.CompilerError;
 import rubble.data.Unit;
 import rubble.data.Location;
 import rubble.data.Token;
+import rubble.data.Types;
 
 
 public abstract class Parser<T> {
@@ -73,32 +74,36 @@ public abstract class Parser<T> {
     
     protected abstract T nullDenotation(Token token) throws CompilerError;
     
-    public static final ArrayList<AST.Declaration<Unit>> parse(Location loc, ArrayList<Token> tokens) throws CompilerError {
+    public static final ArrayList<AST.Declaration<Unit, Types.Parsed, String>> parse(ArrayList<Token> tokens) throws CompilerError {
+        Location loc = (tokens.size() == 0) ? new Location(1,1) : new Location(tokens.get(0).loc, tokens.get(tokens.size() - 1).loc);
         return (new Declaration(loc, tokens)).parseListFull("EOF");
     }
     
-    protected final T parse(int rbp) throws CompilerError {
+    public final T parse(int rbp) throws CompilerError {
         T ast = nullDenotation(nextToken());
-        
-        while (context.isLive()) {
-            LeftDenotation<T> ld = leftDenotation(context.tokens.get(context.index));
-            if (ld != null && rbp < ld.lbp()) {
-                context.index += 1;
-                ast = ld.apply(ast);
-            } else {
-                return ast;
-            }
-        }
-        return ast;
+        return parseLeft(ast, rbp);
     }
     
     protected final T parseFull(String terminal) throws CompilerError {
         T result = parse(0);
         if (context.isLive()) {
             Token t = context.lookahead();
-            throw ParseContext.errorUnexpected(t.loc, terminal, t.source);
+            throw ParseContext.errorUnexpected(t.loc, terminal, "found " + t.source);
         }
         return result;
+    }
+    
+    protected final T parseLeft(T ast, int rbp) throws CompilerError {
+        while (context.isLive()) {
+            LeftDenotation<T> ld = leftDenotation(context.tokens.get(context.index));
+            if (ld != null && rbp < ld.lbp()) {
+                context.index++;
+                ast = ld.apply(ast);
+            } else {
+                return ast;
+            }
+        }
+        return ast;
     }
     
     
@@ -118,7 +123,7 @@ public abstract class Parser<T> {
         ArrayList<T> result = parseList();
         if (context.isLive()) {
             Token t = context.lookahead();
-            ParseContext.errorUnexpected(t.loc, separator + " or " + terminal, "found " + t.source);
+            throw ParseContext.errorUnexpected(t.loc, separator + " or " + terminal, "found " + t.source);
         }
         return result;
     }

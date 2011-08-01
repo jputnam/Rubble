@@ -43,7 +43,7 @@ public final class ParseContext {
         if (!isLive()) {
             throw errorUnexpected(loc, expected, "ran out of input");
         }
-        index += 1;
+        index++;
         return tokens.get(index - 1);
     }
     

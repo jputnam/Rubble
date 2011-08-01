@@ -80,7 +80,7 @@ public final class Layout {
                 return actions.onImplicitEndOfBlock(current.loc.before(), result);
             }
 
-            index += 1;
+            index++;
             switch (current.tag) {
             case Block:
                 if (current.source.equals("{")) {
@@ -96,7 +96,7 @@ public final class Layout {
                     permitSemicolon = false;
                     ArrayList<Token> block = layoutBlock(false, semicolonColumn);
                     permitSemicolon = true;
-                    Location newLoc = (block.size() == 0) ? current.loc : new Location(current.loc.startRow, current.loc.startColumn, block.get(block.size() - 1).loc.endRow, block.get(block.size() - 1).loc.endColumn);
+                    Location newLoc = (block.size() == 0) ? current.loc : new Location(current.loc, block.get(block.size() - 1).loc);
                     result.add(new Token(newLoc, Token.IMPLICIT_BRACE, Tag.Block, block));
                     
                 } else {

@@ -6,10 +6,11 @@ import rubble.data.AST;
 import rubble.data.CompilerError;
 import rubble.data.Location;
 import rubble.data.Token;
+import rubble.data.Types;
 import rubble.data.Unit;
 
 
-public final class Statement extends Parser<AST.Statement<Unit>> {
+public final class Statement extends Parser<AST.Statement<Unit, Types.Parsed, String>> {
     
     private static final class StringStack {
         
@@ -36,12 +37,11 @@ public final class Statement extends Parser<AST.Statement<Unit>> {
         super(context, "a statement", ";");
         scopeStack = StringStack.NIL;
     }
-    /*
+    
     public Statement(Location loc, ArrayList<Token> tokens) {
         super(new ParseContext(loc, tokens), "a statement", ";");
-        scopeStack = null;
+        scopeStack = StringStack.NIL;
     }
-    */
     
     private Statement(ParseContext context, StringStack scopeStack) {
         super(context, "a statement", ";");
@@ -53,37 +53,37 @@ public final class Statement extends Parser<AST.Statement<Unit>> {
         this.scopeStack = scopeStack;
     }
     
-    private static AST.LValue<Unit> certifyLValue(AST.Expression<Unit> ast) throws CompilerError {
+    private static AST.LValue<Unit, Types.Parsed, String> certifyLValue(AST.Expression<Unit, Types.Parsed, String> ast) throws CompilerError {
         switch (ast.tag) {
         case Index:
-            AST.Index<Unit> ix = (AST.Index<Unit>)ast;
-            return new AST.IndexL<Unit>(ast.loc, Unit.Unit, certifyLValue(ix.base), ix.offset);
+            AST.Index<Unit, Types.Parsed, String> ix = (AST.Index<Unit, Types.Parsed, String>)ast;
+            return new AST.IndexL<Unit, Types.Parsed, String>(ast.loc, Unit.Unit, certifyLValue(ix.base), ix.offset);
         case Tuple:
-            AST.Tuple<Unit> tuple = (AST.Tuple<Unit>)ast;
-            ArrayList<AST.LValue<Unit>> ls = new ArrayList<AST.LValue<Unit>>();
-            for (AST.Expression<Unit> e: tuple.es){
+            AST.Tuple<Unit, Types.Parsed, String> tuple = (AST.Tuple<Unit, Types.Parsed, String>)ast;
+            ArrayList<AST.LValue<Unit, Types.Parsed, String>> ls = new ArrayList<AST.LValue<Unit, Types.Parsed, String>>();
+            for (AST.Expression<Unit, Types.Parsed, String> e: tuple.es){
                 ls.add(certifyLValue(e));
             }
-            return new AST.TupleL<Unit>(ast.loc, Unit.Unit, ls);
+            return new AST.TupleL<Unit, Types.Parsed, String>(ast.loc, Unit.Unit, ls);
         case ValueAt:
-            return new AST.Indirect<Unit>(ast.loc, Unit.Unit, ast);
+            return new AST.Indirect<Unit, Types.Parsed, String>(ast.loc, Unit.Unit, ((AST.ValueAt<Unit, Types.Parsed, String>)ast).value);
         case Variable:
-            return new AST.Direct<Unit>(ast.loc, Unit.Unit, ((AST.Variable<Unit>)ast).name);
+            return new AST.Direct<Unit, Types.Parsed, String>(ast.loc, Unit.Unit, ((AST.Variable<Unit, Types.Parsed, String>)ast).name);
         default:
-            throw ParseContext.errorUnexpected(ast.loc, "an lvalue", "another kind of expression");
+            throw ParseContext.errorUnexpected(ast.loc, "an lvalue", "found another kind of expression");
         }
     }
     
-    protected LeftDenotation<rubble.data.AST.Statement<Unit>> leftDenotation(Token token) throws CompilerError {
+    protected LeftDenotation<rubble.data.AST.Statement<Unit, Types.Parsed, String>> leftDenotation(Token token) throws CompilerError {
         return null;
     }
 
-    protected AST.Statement<Unit> nullDenotation(Token token) throws CompilerError {
+    protected AST.Statement<Unit, Types.Parsed, String> nullDenotation(Token token) throws CompilerError {
         Token lookahead;
         switch(token.tag) {
         case Block:
             if (token.source.equals("{") || token.source.equals(Token.IMPLICIT_BRACE)) {
-                return new AST.Nested<Unit>(token.loc, ((new Statement(token.loc, token.subtokens, scopeStack)).parseListFull("}")));
+                return new AST.Nested<Unit, Types.Parsed, String>(token.loc, ((new Statement(token.loc, token.subtokens, scopeStack)).parseListFull("}")));
             } else if (token.source.equals("(")) {
                 return parseCallOrAssignment(token);
             }
@@ -93,43 +93,44 @@ public final class Statement extends Parser<AST.Statement<Unit>> {
             if (lookahead == null) {
                 throw errorUnexpectedToken(token.loc, "an incomplete statement");
             } else if (lookahead.source.equals("forever")) {
-                context.index += 1;
-                return new AST.Forever<Unit>(token.loc, token.source, ((new Statement(context.inBraces(), new StringStack(token.source, scopeStack))).parseListFull("}")));
+                context.index++;
+                return new AST.Forever<Unit, Types.Parsed, String>(token.loc, token.source, ((new Statement(context.inBraces(), new StringStack(token.source, scopeStack))).parseListFull("}")));
             }
             return parseCallOrAssignment(token);
         case Reserved:
             if (token.source.equals("break")) {
+                if (scopeStack.size == 0) {
+                    throw CompilerError.parse(token.loc, "There is no enclosing loop to break out of.");
+                }
                 lookahead = context.lookahead();
                 if (lookahead == null || lookahead.tag == Token.Tag.Semicolon) {
-                    if (scopeStack.size == 0) {
-                        throw CompilerError.parse(token.loc, "There are is no enclosing loop to break out of.");
-                    }
-                    return new AST.Break<Unit>(token.loc, 0);
+                    return new AST.Break<Unit, Types.Parsed, String>(token.loc, 0);
                 } else if (lookahead.tag == Token.Tag.Identifier) {
                     int target = scopeStack.find(lookahead.source);
                     if (target >= scopeStack.size) {
                         throw CompilerError.parse(token.loc, "The break target was not found.");
                     }
-                    return new AST.Break<Unit>(token.loc, target);
+                    context.index++;
+                    return new AST.Break<Unit, Types.Parsed, String>(token.loc, target);
                 }
-                else throw ParseContext.errorUnexpected(token.loc, "the end of the statement or a label", token.source);
+                else throw ParseContext.errorUnexpected(token.loc, "the end of the statement or a label", "found " + lookahead.source);
             } else if (token.source.equals("if")) {
-                AST.Expression<Unit> cond = (new Expression(context)).parse(0);
+                AST.Expression<Unit, Types.Parsed, String> cond = (new Expression(context)).parse(0);
                 context.requireToken("then");
-                ArrayList<AST.Statement<Unit>> trueBranch = (new Statement(context.inBraces(), scopeStack)).parseListFull("}");
-                ArrayList<AST.Statement<Unit>> falseBranch = new ArrayList<AST.Statement<Unit>>();
+                ArrayList<AST.Statement<Unit, Types.Parsed, String>> trueBranch = (new Statement(context.inBraces(), scopeStack)).parseListFull("}");
+                ArrayList<AST.Statement<Unit, Types.Parsed, String>> falseBranch = new ArrayList<AST.Statement<Unit, Types.Parsed, String>>();
                 lookahead = context.lookahead();
                 if (lookahead != null && lookahead.source.equals("else")) {
-                    context.index += 1;
+                    context.index++;
                     falseBranch = (new Statement(context.inBraces(), scopeStack)).parseListFull("}");
                 }
-                return new AST.IfS<Unit>(token.loc, cond, trueBranch, falseBranch);
+                return new AST.IfS<Unit, Types.Parsed, String>(token.loc, cond, trueBranch, falseBranch);
             } else if (token.source.equals("forever")) {
-                return new AST.Forever<Unit>(token.loc, "", (new Statement(context.inBraces(), new StringStack("", scopeStack)).parseListFull("}")));
+                return new AST.Forever<Unit, Types.Parsed, String>(token.loc, "", (new Statement(context.inBraces(), new StringStack("", scopeStack)).parseListFull("}")));
             } else if (token.source.equals("let")) {
                 return parseLet(token.loc);
             } else if (token.source.equals("return")) {
-                return new AST.Return<Unit>(token.loc, (new Expression(context).parseOpenTuple()));
+                return new AST.Return<Unit, Types.Parsed, String>(token.loc, (new Expression(context).parseOpenTuple()));
             } else if (token.source.equals("valueAt")) {
                 return parseCallOrAssignment(token);
             }
@@ -139,34 +140,45 @@ public final class Statement extends Parser<AST.Statement<Unit>> {
         }
     }
     
-    private AST.Statement<Unit> parseCallOrAssignment(Token token) throws CompilerError {
+    private AST.Statement<Unit, Types.Parsed, String> parseCallOrAssignment(Token token) throws CompilerError {
         context.index -= 1;
-        AST.Expression<Unit> ast = (new Expression(context)).parseOpenTuple();
+        AST.Expression<Unit, Types.Parsed, String> ast = (new Expression(context)).parseOpenTuple();
         Token lookahead = context.lookahead();
         if (lookahead == null || lookahead.tag == Token.Tag.Semicolon) {
             if (ast.tag == AST.ExpressionTag.Apply) {
-                return new AST.Call<Unit>(token.loc, ((AST.Apply<Unit>)ast).function, ((AST.Apply<Unit>)ast).argument);
+                return new AST.Call<Unit, Types.Parsed, String>(token.loc, ((AST.Apply<Unit, Types.Parsed, String>)ast).function, ((AST.Apply<Unit, Types.Parsed, String>)ast).argument);
             }
             throw errorUnexpectedToken(token.loc, token.source);
         } else if (lookahead.source.equals("=")) {
-            AST.LValue<Unit> lValue = certifyLValue(ast);
-            context.index += 1;
-            return new AST.Assign<Unit>(token.loc, lValue, (new Expression(context)).parseOpenTuple());
+            AST.LValue<Unit, Types.Parsed, String> lValue = certifyLValue(ast);
+            context.index++;
+            return new AST.Assign<Unit, Types.Parsed, String>(token.loc, lValue, (new Expression(context)).parseOpenTuple());
         }
         throw errorUnexpectedToken(token.loc, token.source);
     }
     
-    public AST.Let<Unit> parseLet(Location loc) throws CompilerError {
+    public AST.Let<Unit, Types.Parsed, String> parseLet(Location loc) throws CompilerError {
         Token lookahead = context.lookahead();
         if (lookahead == null) {
             throw ParseContext.errorUnexpected(loc, "a binding", "ran out of input");
-        } else if (lookahead.tag == Token.Tag.Block) {
-            return new AST.Let<Unit>(loc, (new Binding(lookahead.loc, lookahead.subtokens)).parseListFull("}"));
-        } else if (lookahead.tag == Token.Tag.Identifier) {
-            ArrayList<AST.Binding<Unit>> bindings = new ArrayList<AST.Binding<Unit>>();
-            bindings.add((new Binding(lookahead.loc, lookahead.subtokens)).parse(0));
-            return new AST.Let<Unit>(loc, bindings);
         }
-        throw ParseContext.errorUnexpected(loc, "an identifier or binding block", lookahead.source);
+        Location letLoc;
+        ArrayList<AST.Binding<Unit, Types.Parsed, String>> bs;
+        switch (lookahead.tag) {
+        case Block:
+            bs = new Binding(lookahead.loc, lookahead.subtokens).parseListFull("}");
+            if (bs.size() == 0) {
+                throw CompilerError.parse(loc, "You cannot have an empty let block.");
+            }
+            letLoc = new Location(loc, bs.get(bs.size() - 1).loc);
+            return new AST.Let<Unit, Types.Parsed, String>(letLoc, bs);
+        case Identifier:
+        case Reserved:
+            bs = new ArrayList<AST.Binding<Unit, Types.Parsed, String>>();
+            bs.add((new Binding(context)).parse(0));
+            letLoc = new Location(loc, bs.get(bs.size() - 1).loc);
+            return new AST.Let<Unit, Types.Parsed, String>(letLoc, bs);
+        }
+        throw ParseContext.errorUnexpected(loc, "an identifier or binding block", "found " + lookahead.source);
     }
 }

@@ -75,8 +75,8 @@ public final class Lexer {
             // Remove spaces.
             while (source.startsWith(" ", index)) {
                 workDone = true;
-                index += 1;
-                column += 1;
+                index++;
+                column++;
                 separated = true;
             }
             
@@ -89,8 +89,8 @@ public final class Lexer {
             // Remove newlines.
             if (source.startsWith("\n", index)) {
                 workDone = true;
-                index += 1;
-                row += 1;
+                index++;
+                row++;
                 column = 1;
                 separated = true;
             }
@@ -119,8 +119,8 @@ public final class Lexer {
     private Token lexBlockHelper(String open, String close) throws CompilerError {
         int startRow = row;
         int startColumn = column;
-        index += 1;
-        column += 1;
+        index++;
+        column++;
         separated = true;
         ArrayList<Token> subtokens = lex(open.equals("`"));
 
@@ -128,8 +128,8 @@ public final class Lexer {
             String message = index >= source.length() ? "" : ("  " + source.charAt(index) + " was found instead.");
             throw CompilerError.lexical(new Location(row, column), "Unclosed " + open + "." + message);
         }
-        index += 1;
-        column += 1;
+        index++;
+        column++;
         separated = false;
         return new Token(new Location(startRow, startColumn, row, column), open, Tag.Block, subtokens);
     }
@@ -138,15 +138,15 @@ public final class Lexer {
         if (matchChar(identifierBeginning, source.charAt(index))) {
             int startIndex = index;
             int startColumn = column;
-            index += 1;
-            column += 1;
+            index++;
+            column++;
             while (index < source.length() && matchChar(identifierCharacter, source.charAt(index))) {
-                index += 1;
-                column += 1;
+                index++;
+                column++;
             }
             separated = false;
             String identifier = source.substring(startIndex, index);
-            Token.Tag tag = (identifier.equals("do")) ? Tag.Block
+            Token.Tag tag = (identifier.equals(Token.IMPLICIT_BRACE)) ? Tag.Block
                     : (reservedWords.contains(identifier)) ? Tag.Reserved : Tag.Identifier;
             return new Token(new Location(row, startColumn, column), identifier, tag);
         }
@@ -159,13 +159,13 @@ public final class Lexer {
         
         // Handle negative numbers.
         if (separated && source.charAt(index) == '-' && index + 1 < source.length()) {
-            if (!(source.charAt(index + 1) > '0' && source.charAt(index + 1) < '9')) { return null; }
+            if (source.charAt(index + 1) < '0' || source.charAt(index + 1) > '9') { return null; }
             index += 2;
             column += 2;
         }
-        while(index < source.length() && source.charAt(index) > '0' && source.charAt(index) < '9') {
-            index += 1;
-            column += 1;
+        while(index < source.length() && source.charAt(index) >= '0' && source.charAt(index) <= '9') {
+            index++;
+            column++;
         }
         if (index == startIndex) { return null; }
         separated = false;
@@ -177,8 +177,8 @@ public final class Lexer {
         int startColumn = column;
         
         while (index < source.length() && matchChar(operatorCharacter, source.charAt(index))) {
-            index += 1;
-            column += 1;
+            index++;
+            column++;
         }
         if (index == startIndex) { return null; }
         String op = source.substring(startIndex, index);
@@ -196,13 +196,9 @@ public final class Lexer {
             }
         }
         if (op.equals(":")) {
-            if (separated) {
-                op = "asType";
-                tag = Tag.Reserved;
-            } else {
-                tag = Tag.Block;
-            }
-        } else if (op.equals("->")) {
+            op = "asType";
+            tag = Tag.Reserved;
+        } else if (op.equals("->") || op.equals("=")) {
             tag = Tag.Reserved;
         }
         
@@ -212,13 +208,13 @@ public final class Lexer {
     
     private Token lexSeparator() {
         if (source.startsWith(",", index)) {
-            index += 1;
-            column += 1;
+            index++;
+            column++;
             separated = true;
             return new Token(new Location(row, column - 1, column), ",", Tag.Comma);
         } else if (source.startsWith(";", index)) {
-            index += 1;
-            column += 1;
+            index++;
+            column++;
             separated = true;
             return new Token(new Location(row, column - 1, column), ";", Tag.Semicolon);
         }

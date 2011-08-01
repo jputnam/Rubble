@@ -10,7 +10,7 @@ import rubble.data.Types;
 import rubble.data.Unit;
 
 
-public final class Declaration extends Parser<AST.Declaration<Unit>> {
+public final class Declaration extends Parser<AST.Declaration<Unit, Types.Parsed, String>> {
     
     public Declaration(ParseContext context) {
         super(context, "a declaration", ";");
@@ -20,12 +20,12 @@ public final class Declaration extends Parser<AST.Declaration<Unit>> {
         super(new ParseContext(loc, tokens), "a declaration", ";");
     }
 
-    protected LeftDenotation<AST.Declaration<Unit>> leftDenotation(Token token) throws CompilerError {
+    protected LeftDenotation<AST.Declaration<Unit, Types.Parsed, String>> leftDenotation(Token token) throws CompilerError {
         return null;
     }
 
-    protected AST.Declaration<Unit> nullDenotation(Token token) throws CompilerError {
-        if (token.source == "def") {
+    protected AST.Declaration<Unit, Types.Parsed, String> nullDenotation(Token token) throws CompilerError {
+        if (token.source.equals("def")) {
             // The function name
             Token name = nextToken();
             if (name.tag != Token.Tag.Identifier) {
@@ -37,19 +37,21 @@ public final class Declaration extends Parser<AST.Declaration<Unit>> {
             if (!argumentToken.source.equals("(")) {
                 throw ParseContext.errorUnexpected(argumentToken.loc, "an argument list", "found " + argumentToken.source);
             }
-            ArrayList<AST.Reference> arguments = Reference.parse(new ParseContext(argumentToken.loc, argumentToken.subtokens));
+            ArrayList<AST.Reference<Types.Parsed, String>> arguments = Reference.parse(new ParseContext(argumentToken.loc, argumentToken.subtokens));
             
             // The return type
-            Types.Type returnType = (new Type(context)).parse(0);
+            Types.Type<Types.Parsed> returnType = (new Type(context)).parse(0);
             
             // The body
-            ArrayList<AST.Statement<Unit>> body = (new Statement(context.inBraces())).parseListFull("}");
+            Token bodyLookahead = context.lookahead();
+            ArrayList<AST.Statement<Unit, Types.Parsed, String>> body = (new Statement(context.inBraces())).parseListFull("}");
             
-            return new AST.Def<Unit>(token.loc, name.source, arguments, returnType, body);
+            Location defLoc = new Location(token.loc, bodyLookahead.loc);
+            return new AST.Def<Unit, Types.Parsed, String>(defLoc, name.source, arguments, returnType, body);
             
-        } if (token.source == "let") {
-            AST.Let<Unit> let = (new Statement(context)).parseLet(token.loc);
-            return new AST.GlobalLet<Unit>(let.loc, let.bindings);
+        } if (token.source.equals("let")) {
+            AST.Let<Unit, Types.Parsed, String> let = (new Statement(context)).parseLet(token.loc);
+            return new AST.GlobalLet<Unit, Types.Parsed, String>(let.loc, let.bindings);
         }
         throw errorUnexpectedToken(token.loc, token.source);
     }
