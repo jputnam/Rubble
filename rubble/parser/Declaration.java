@@ -39,6 +39,14 @@ public final class Declaration extends Parser<AST.Declaration<Unit, Types.Parsed
             }
             ArrayList<AST.Reference<Types.Parsed, String>> arguments = Reference.parse(new ParseContext(argumentToken.loc, argumentToken.subtokens));
             
+            // Function types always have at least one argument, so empty
+            // argument lists are special cases to implicitly have a Unit
+            // typed argument with an unreachable name.
+            if (arguments.size() == 0) {
+                arguments.add(new AST.Reference<Types.Parsed, String>("# Implicit argument", new Types.Known<Types.Parsed>(new Types.Ground(Types.GroundTag.Unit, false))));
+            }
+            
+            
             // The return type
             Types.Type<Types.Parsed> returnType = (new Type(context)).parse(0);
             

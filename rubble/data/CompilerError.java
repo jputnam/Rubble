@@ -13,6 +13,10 @@ public final class CompilerError extends Exception {
 		this.message = message;
 	}
 	
+	public static CompilerError check(Location loc, String message) {
+	    return new CompilerError(loc, "Well-formedness check", message);
+	}
+	
 	public static CompilerError ice(Location loc, String message) {
 		return new CompilerError(loc, "Internal compiler", message);
 	}
