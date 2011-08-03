@@ -14,7 +14,7 @@ public final class Types {
     public static final class Poly extends Parsed { }
     
     
-    public static abstract class Nat<Phase, Name> {
+    public static abstract class Nat<Name, Phase> {
         
         public final NatTag tag;
         
@@ -25,11 +25,11 @@ public final class Types {
     
     public static enum NatTag { NatExternal, NatKnown, NatLiteral, NatVar, NatUnknown }
     
-    public static final class NatExternal<Phase, N> extends Nat<Phase, N> {
+    public static final class NatExternal<Name, Phase> extends Nat<Name, Phase> {
         
-        public final N name;
+        public final Name name;
         
-        public NatExternal(N name) {
+        public NatExternal(Name name) {
             super(NatTag.NatVar);
             this.name = name;
         }
@@ -39,11 +39,11 @@ public final class Types {
         }
     }
     
-    public static final class NatKnown<Phase extends Parsed, N> extends Nat<Phase, N> {
+    public static final class NatKnown<Name, Phase extends Parsed> extends Nat<Name, Phase> {
         
-        public final Nat<Mono, ResolvedName> nat;
+        public final Nat<ResolvedName, Mono> nat;
         
-        public NatKnown(Nat<Mono, ResolvedName> nat) {
+        public NatKnown(Nat<ResolvedName, Mono> nat) {
             super(NatTag.NatKnown);
             this.nat = nat;
         }
@@ -53,7 +53,7 @@ public final class Types {
         }
     }
     
-    public static final class NatLiteral extends Nat<Mono, ResolvedName> {
+    public static final class NatLiteral extends Nat<ResolvedName, Mono> {
         
         public final long value;
         
@@ -67,7 +67,7 @@ public final class Types {
         }
     }
     
-    public static final class NatVar<N> extends Nat<Poly, N> {
+    public static final class NatVar<Name> extends Nat<Name, Poly> {
         
         public final int index;
         
@@ -81,7 +81,7 @@ public final class Types {
         }
     }
     
-    public static final class NatUnknown extends Nat<Parsed, String> {
+    public static final class NatUnknown extends Nat<String, Parsed> {
         
         public NatUnknown() {
             super(NatTag.NatUnknown);
@@ -101,7 +101,7 @@ public final class Types {
     }
     
     
-    public static abstract class Type<Phase> {
+    public static abstract class Type<Name, Phase> {
         
         public final boolean isMutable;
         public final Tag tag;
@@ -111,22 +111,22 @@ public final class Types {
             this.isMutable = isMutable;
         }
         
-        public abstract Type<Phase> mutable();
+        public abstract Type<Name, Phase> mutable();
     }
     
-    public static final class Arrow<Phase> extends Type<Phase> {
+    public static final class Arrow<Name, Phase> extends Type<Name, Phase> {
         
-        public final Type<Phase> domain;
-        public final Type<Phase> codomain;
+        public final Type<Name, Phase> domain;
+        public final Type<Name, Phase> codomain;
         
-        public Arrow(Type<Phase> domain, Type<Phase> codomain, boolean isMutable) {
+        public Arrow(Type<Name, Phase> domain, Type<Name, Phase> codomain, boolean isMutable) {
             super(Tag.Arrow, isMutable);
             this.domain = domain;
             this.codomain = codomain;
         }
         
-        public Type<Phase> mutable() {
-            return new Arrow<Phase>(domain, codomain, true);
+        public Type<Name, Phase> mutable() {
+            return new Arrow<Name, Phase>(domain, codomain, true);
         }
         
         public String toString() {
@@ -134,19 +134,19 @@ public final class Types {
         }
     }
     
-    public static final class Buffer<Phase, N> extends Type<Phase> {
+    public static final class Buffer<Name, Phase> extends Type<Name, Phase> {
         
-        public final Type<Phase> contained;
-        public final Nat<Phase, N> size;
+        public final Type<Name, Phase> contained;
+        public final Nat<Name, Phase> size;
         
-        public Buffer(Nat<Phase, N> size, Type<Phase> contained, boolean isMutable) {
+        public Buffer(Nat<Name, Phase> size, Type<Name, Phase> contained, boolean isMutable) {
             super(Tag.Buffer, isMutable);
             this.contained = contained;
             this.size = size;
         }
         
-        public Type<Phase> mutable() {
-            return new Buffer<Phase, N>(size, contained, true);
+        public Type<Name, Phase> mutable() {
+            return new Buffer<Name, Phase>(size, contained, true);
         }
         
         public String toString() {
@@ -154,7 +154,7 @@ public final class Types {
         }
     }
     
-    public static final class Ground extends Type<Mono> {
+    public static final class Ground<Name> extends Type<Name, Mono> {
         
         public final GroundTag groundTag;
         
@@ -163,8 +163,8 @@ public final class Types {
             this.groundTag = groundTag;
         }
         
-        public Type<Mono> mutable() {
-            return new Ground(groundTag, true);
+        public Type<Name, Mono> mutable() {
+            return new Ground<Name>(groundTag, true);
         }
         
         public String toString() {
@@ -172,17 +172,17 @@ public final class Types {
         }
     }
     
-    public static final class Known<Phase extends Parsed> extends Type<Phase> {
+    public static final class Known<Name, Phase extends Parsed> extends Type<Name, Phase> {
         
-        public final Type<Mono> type;
+        public final Type<Name, Mono> type;
         
-        public Known(Type<Mono> type) {
+        public Known(Type<Name, Mono> type) {
             super(Tag.Known, type.isMutable);
             this.type = type;
         }
         
-        public Type<Phase> mutable() {
-            return new Known<Phase>(type.mutable());
+        public Type<Name, Phase> mutable() {
+            return new Known<Name, Phase>(type.mutable());
         }
         
         public String toString() {
@@ -190,17 +190,17 @@ public final class Types {
         }
     }
     
-    public static final class Ptr<Phase> extends Type<Phase> {
+    public static final class Ptr<Name, Phase> extends Type<Name, Phase> {
         
-        public final Type<Phase> pointee;
+        public final Type<Name, Phase> pointee;
         
-        public Ptr(Type<Phase> pointee, boolean isMutable) {
+        public Ptr(Type<Name, Phase> pointee, boolean isMutable) {
             super(Tag.Ptr, isMutable);
             this.pointee = pointee;
         }
         
-        public Type<Phase> mutable() {
-            return new Ptr<Phase>(pointee, true);
+        public Type<Name, Phase> mutable() {
+            return new Ptr<Name, Phase>(pointee, true);
         }
         
         public String toString() {
@@ -208,29 +208,29 @@ public final class Types {
         }
     }
     
-    public static final class Tuple<Phase> extends Type<Phase> {
+    public static final class Tuple<Name, Phase> extends Type<Name, Phase> {
         
-        public final ArrayList<Type<Phase>> members;
+        public final ArrayList<Type<Name, Phase>> members;
         
-        public Tuple(ArrayList<Type<Phase>> members, boolean isMutable) {
+        public Tuple(ArrayList<Type<Name, Phase>> members, boolean isMutable) {
             super(Tag.Tuple, isMutable);
             this.members = members;
         }
         
-        public Type<Phase> mutable() {
-            return new Tuple<Phase>(members, true);
+        public Type<Name, Phase> mutable() {
+            return new Tuple<Name, Phase>(members, true);
         }
         
         public String toString() {
             String ms = "";
-            for (Type<Phase> t: members) {
+            for (Type<Name, Phase> t: members) {
                 ms += t.toString();
             }
             return "(Tuple " + ms + " " + isMutable + ")";
         }
     }
     
-    public static final class TypeVar extends Type<Poly> {
+    public static final class TypeVar<Name> extends Type<Name, Poly> {
         
         public int id;
         
@@ -239,8 +239,8 @@ public final class Types {
             this.id = id;
         }
         
-        public Type<Poly> mutable() {
-            return new TypeVar(id, true);
+        public Type<Name, Poly> mutable() {
+            return new TypeVar<Name>(id, true);
         }
         
         public String toString() {
@@ -248,18 +248,26 @@ public final class Types {
         }
     }
     
-    public static final class Unknown extends Type<Parsed> {
+    public static Unknown<String> UNKNOWN_IMMUTABLE = new Unknown<String>(false, false);
+    public static Unknown<String> UNKNOWN_NEUTRAL = new Unknown<String>(true, false);
+    
+    public static final class Unknown<Name> extends Type<Name, Parsed> {
         
-        public Unknown(boolean isMutable) {
+        // If the type is neutral, this overrides mutability; the type
+        // variable can be unified with either a mutable type or an immutable one.
+        public final boolean isNeutral;
+        
+        public Unknown(boolean isNeutral, boolean isMutable) {
             super(Tag.Unknown, isMutable);
+            this.isNeutral = isNeutral;
         }
         
-        public Type<Parsed> mutable() {
-            return new Unknown(true);
+        public Type<Name, Parsed> mutable() {
+            return new Unknown<Name>(isNeutral, true);
         }
         
         public String toString() {
-            return "(? " + isMutable + ")";
+            return "(? " + isNeutral + " " + isMutable + ")";
         }
     }
 }

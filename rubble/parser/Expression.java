@@ -7,11 +7,10 @@ import rubble.data.CompilerError;
 import rubble.data.Location;
 import rubble.data.Token;
 import rubble.data.Types;
-import rubble.data.Unit;
 import rubble.data.AST.ExpressionTag;
 
 
-public final class Expression extends Parser<AST.Expression<Unit, Types.Parsed, String>> {
+public final class Expression extends Parser<AST.Expression<String, Types.Parsed>> {
     
     public Expression(ParseContext context) {
         super(context, "an expression", ",");
@@ -21,54 +20,54 @@ public final class Expression extends Parser<AST.Expression<Unit, Types.Parsed, 
         super(loc, tokens, "an expression", ",");
     }
     
-    private LeftDenotation<AST.Expression<Unit, Types.Parsed, String>> application(final AST.Expression<Unit, Types.Parsed, String> ast) throws CompilerError {
-        return new LeftDenotation<AST.Expression<Unit, Types.Parsed, String>>() {
+    private LeftDenotation<AST.Expression<String, Types.Parsed>> application(final AST.Expression<String, Types.Parsed> ast) throws CompilerError {
+        return new LeftDenotation<AST.Expression<String, Types.Parsed>>() {
             
             public int lbp() { return 11; }
             private final int rbp = 10;
             
-            public AST.Expression<Unit, Types.Parsed, String> apply(AST.Expression<Unit, Types.Parsed, String> left) throws CompilerError {
-                return new AST.Apply<Unit, Types.Parsed, String>(left.loc, Unit.Unit, left, parseLeft(ast, rbp));
+            public AST.Expression<String, Types.Parsed> apply(AST.Expression<String, Types.Parsed> left) throws CompilerError {
+                return new AST.Apply<String, Types.Parsed>(left.loc, Types.UNKNOWN_NEUTRAL, left, parseLeft(ast, rbp));
             }
         };
     }
     
-    private LeftDenotation<AST.Expression<Unit, Types.Parsed, String>> infixExpression(final int precedence, final AST.Expression<Unit, Types.Parsed, String> center) throws CompilerError {
-        return new LeftDenotation<AST.Expression<Unit, Types.Parsed, String>>() {
+    private LeftDenotation<AST.Expression<String, Types.Parsed>> infixExpression(final int precedence, final AST.Expression<String, Types.Parsed> center) throws CompilerError {
+        return new LeftDenotation<AST.Expression<String, Types.Parsed>>() {
             
             public int lbp() { return precedence; }
             
-            public AST.Expression<Unit, Types.Parsed, String> apply(AST.Expression<Unit, Types.Parsed, String> left) throws CompilerError {
-                AST.Expression<Unit, Types.Parsed, String> right = parse(precedence);
+            public AST.Expression<String, Types.Parsed> apply(AST.Expression<String, Types.Parsed> left) throws CompilerError {
+                AST.Expression<String, Types.Parsed> right = parse(precedence);
                 switch (center.tag) {
                 case Apply:
-                    AST.Apply<Unit, Types.Parsed, String> result = (AST.Apply<Unit, Types.Parsed, String>)center;
-                    ArrayList<AST.Expression<Unit, Types.Parsed, String>> aArguments;
+                    AST.Apply<String, Types.Parsed> result = (AST.Apply<String, Types.Parsed>)center;
+                    ArrayList<AST.Expression<String, Types.Parsed>> aArguments;
                     if (result.argument.tag == ExpressionTag.Tuple) {
-                        aArguments = ((AST.Tuple<Unit, Types.Parsed, String>)result.argument).es;
+                        aArguments = ((AST.Tuple<String, Types.Parsed>)result.argument).es;
                     } else {
-                        aArguments = new ArrayList<AST.Expression<Unit, Types.Parsed, String>>();
+                        aArguments = new ArrayList<AST.Expression<String, Types.Parsed>>();
                         aArguments.add(result.argument);
                     }
                     aArguments.add(left);
                     aArguments.add(right);
-                    return new AST.Apply<Unit, Types.Parsed, String>(result.loc, Unit.Unit, result.function, new AST.Tuple<Unit, Types.Parsed, String>(result.argument.loc, Unit.Unit, aArguments));
+                    return new AST.Apply<String, Types.Parsed>(result.loc, Types.UNKNOWN_NEUTRAL, result.function, new AST.Tuple<String, Types.Parsed>(result.argument.loc, Types.UNKNOWN_NEUTRAL, aArguments));
                     
                 default:
-                    ArrayList<AST.Expression<Unit, Types.Parsed, String>> bArguments = new ArrayList<AST.Expression<Unit, Types.Parsed, String>>();
+                    ArrayList<AST.Expression<String, Types.Parsed>> bArguments = new ArrayList<AST.Expression<String, Types.Parsed>>();
                     bArguments.add(left);
                     bArguments.add(right);
-                    return new AST.Apply<Unit, Types.Parsed, String>(center.loc, Unit.Unit, center, new AST.Tuple<Unit, Types.Parsed, String>(left.loc, Unit.Unit, bArguments));
+                    return new AST.Apply<String, Types.Parsed>(center.loc, Types.UNKNOWN_NEUTRAL, center, new AST.Tuple<String, Types.Parsed>(left.loc, Types.UNKNOWN_NEUTRAL, bArguments));
                 }
             }
         };
     }
     
-    private LeftDenotation<AST.Expression<Unit, Types.Parsed, String>> infixOperator(final int precedence, Token center) throws CompilerError {
-        return infixExpression(precedence, new AST.Variable<Unit, Types.Parsed, String>(center.loc, Unit.Unit, center.source));
+    private LeftDenotation<AST.Expression<String, Types.Parsed>> infixOperator(final int precedence, Token center) throws CompilerError {
+        return infixExpression(precedence, new AST.Variable<String, Types.Parsed>(center.loc, Types.UNKNOWN_NEUTRAL, center.source));
     }
     
-    protected LeftDenotation<AST.Expression<Unit, Types.Parsed, String>> leftDenotation(final Token token) throws CompilerError {
+    protected LeftDenotation<AST.Expression<String, Types.Parsed>> leftDenotation(final Token token) throws CompilerError {
         switch (token.tag) {
         case Block:
             if (token.source.equals("`")) {
@@ -76,20 +75,20 @@ public final class Expression extends Parser<AST.Expression<Unit, Types.Parsed, 
             } else if (token.source.equals("(")) {
                 return application(parseTuple(token.loc, token.subtokens));
             } else if (token.source.equals("[")) {
-                return new LeftDenotation<AST.Expression<Unit, Types.Parsed, String>>() {
+                return new LeftDenotation<AST.Expression<String, Types.Parsed>>() {
                     
                     public int lbp() { return 14; }
                     
-                    public AST.Expression<Unit, Types.Parsed, String> apply(AST.Expression<Unit, Types.Parsed, String> left) throws CompilerError {
-                        return new AST.Index<Unit, Types.Parsed, String>(left.loc, Unit.Unit, left, (new Expression(token.loc, token.subtokens)).parseFull("]"));
+                    public AST.Expression<String, Types.Parsed> apply(AST.Expression<String, Types.Parsed> left) throws CompilerError {
+                        return new AST.Index<String, Types.Parsed>(left.loc, Types.UNKNOWN_NEUTRAL, left, (new Expression(token.loc, token.subtokens)).parseFull("]"));
                     }
                 };
             }
             return null;
         case Identifier:
-            return application(new AST.Variable<Unit, Types.Parsed, String>(token.loc, Unit.Unit, token.source));
+            return application(new AST.Variable<String, Types.Parsed>(token.loc, Types.UNKNOWN_NEUTRAL, token.source));
         case Number:
-            return application(new AST.Number<Unit, Types.Parsed, String>(token.loc, Unit.Unit, token.source));
+            return application(new AST.Number<String, Types.Parsed>(token.loc, Types.UNKNOWN_NEUTRAL, token.source));
         case Operator:
             if (token.source.equals("+")) {
                 return infixOperator(6, token);
@@ -119,13 +118,13 @@ public final class Expression extends Parser<AST.Expression<Unit, Types.Parsed, 
             throw errorUnexpectedToken(token.loc, "an unrecognized operator");
         case Reserved:
             if (token.source.equals("asType")) {
-                return new LeftDenotation<AST.Expression<Unit, Types.Parsed, String>>() {
+                return new LeftDenotation<AST.Expression<String, Types.Parsed>>() {
                     
                     public int lbp() { return 12; }
                     
-                    public AST.Expression<Unit, Types.Parsed, String> apply(AST.Expression<Unit, Types.Parsed, String> left) throws CompilerError {
-                        final Types.Type<Types.Parsed> tau = (new Type(context)).parse(11);
-                        return new AST.AsType<Unit, Types.Parsed, String>(left.loc, Unit.Unit, left, tau);
+                    public AST.Expression<String, Types.Parsed> apply(AST.Expression<String, Types.Parsed> left) throws CompilerError {
+                        final Types.Type<String, Types.Parsed> tau = (new Type(context)).parse(11);
+                        return new AST.AsType<String, Types.Parsed>(left.loc, Types.UNKNOWN_NEUTRAL, left, tau);
                     }
                 };
             }
@@ -135,13 +134,13 @@ public final class Expression extends Parser<AST.Expression<Unit, Types.Parsed, 
         }
     }
     
-    protected AST.Expression<Unit, Types.Parsed, String> nullDenotation(Token token) throws CompilerError {
+    protected AST.Expression<String, Types.Parsed> nullDenotation(Token token) throws CompilerError {
         switch (token.tag) {
         case Block:
             if (token.source.equals("(")) {
                 return parseTuple(token.loc, token.subtokens);
             } else if (token.source.equals("[")) {
-                return new AST.BufferLiteral<Unit, Types.Parsed, String>(token.loc, Unit.Unit, (new Expression(token.loc, token.subtokens)).parseListFull("]"));
+                return new AST.BufferLiteral<String, Types.Parsed>(token.loc, Types.UNKNOWN_NEUTRAL, (new Expression(token.loc, token.subtokens)).parseListFull("]"));
             } else if (token.source.equals("`")) {
                 throw errorUnexpectedToken(token.loc, "a backtick sequence");
             } else {
@@ -150,25 +149,25 @@ public final class Expression extends Parser<AST.Expression<Unit, Types.Parsed, 
         case Comma:
             throw errorUnexpectedToken(token.loc, "a comma");
         case Identifier:
-            return new AST.Variable<Unit, Types.Parsed, String>(token.loc, Unit.Unit, token.source);
+            return new AST.Variable<String, Types.Parsed>(token.loc, Types.UNKNOWN_NEUTRAL, token.source);
         case Number:
-            return new AST.Number<Unit, Types.Parsed, String>(token.loc, Unit.Unit, token.source);
+            return new AST.Number<String, Types.Parsed>(token.loc, Types.UNKNOWN_NEUTRAL, token.source);
         case Operator:
             throw errorUnexpectedToken(token.loc, "an operator");
         case Reserved:
             if (token.source.equals("addressOf")) {
-                return new AST.AddressOf<Unit, Types.Parsed, String>(token.loc, Unit.Unit, parse(12));
+                return new AST.AddressOf<String, Types.Parsed>(token.loc, Types.UNKNOWN_NEUTRAL, parse(12));
             } else if (token.source.equals("if")) {
-                AST.Expression<Unit, Types.Parsed, String> cond = parse(0);
+                AST.Expression<String, Types.Parsed> cond = parse(0);
                 context.requireToken("then");
-                AST.Expression<Unit, Types.Parsed, String> trueBranch = parse(0);
+                AST.Expression<String, Types.Parsed> trueBranch = parse(0);
                 context.requireToken("else");
-                AST.Expression<Unit, Types.Parsed, String> falseBranch = parse(0);
-                return new AST.IfE<Unit, Types.Parsed, String>(token.loc, Unit.Unit, cond, trueBranch, falseBranch);
+                AST.Expression<String, Types.Parsed> falseBranch = parse(0);
+                return new AST.IfE<String, Types.Parsed>(token.loc, Types.UNKNOWN_NEUTRAL, cond, trueBranch, falseBranch);
             } else if (token.source.equals("negate")) {
-                return new AST.Apply<Unit, Types.Parsed, String>(token.loc, Unit.Unit, new AST.Variable<Unit, Types.Parsed, String>(token.loc, Unit.Unit, "negate"), parse(12));
+                return new AST.Apply<String, Types.Parsed>(token.loc, Types.UNKNOWN_NEUTRAL, new AST.Variable<String, Types.Parsed>(token.loc, Types.UNKNOWN_NEUTRAL, "negate"), parse(12));
             } else if (token.source.equals("valueAt")) {
-                return new AST.ValueAt<Unit, Types.Parsed, String>(token.loc, Unit.Unit, parse(12));
+                return new AST.ValueAt<String, Types.Parsed>(token.loc, Types.UNKNOWN_NEUTRAL, parse(12));
             }
             throw errorUnexpectedToken(token.loc, token.source);
         case Semicolon:
@@ -178,8 +177,8 @@ public final class Expression extends Parser<AST.Expression<Unit, Types.Parsed, 
         }
     }
     
-    public AST.Expression<Unit, Types.Parsed, String> parseOpenTuple() throws CompilerError {
-        ArrayList<AST.Expression<Unit, Types.Parsed, String>> result = parseList();
+    public AST.Expression<String, Types.Parsed> parseOpenTuple() throws CompilerError {
+        ArrayList<AST.Expression<String, Types.Parsed>> result = parseList();
         switch (result.size()) {
         case 0:
             throw ParseContext.errorUnexpected(new Location(context.loc.endRow, context.loc.endColumn), "an expression", "ran out of tokens");
@@ -187,19 +186,19 @@ public final class Expression extends Parser<AST.Expression<Unit, Types.Parsed, 
             return result.get(0);
         default:
             Location loc = new Location(result.get(0).loc, result.get(result.size() - 1).loc);
-            return new AST.Tuple<Unit, Types.Parsed, String>(loc, Unit.Unit, result);
+            return new AST.Tuple<String, Types.Parsed>(loc, Types.UNKNOWN_NEUTRAL, result);
         }
     }
     
-    public static AST.Expression<Unit, Types.Parsed, String> parseTuple(Location loc, ArrayList<Token> tokens) throws CompilerError {
-        ArrayList<AST.Expression<Unit, Types.Parsed, String>> result = (new Expression(loc, tokens)).parseListFull(")");
+    public static AST.Expression<String, Types.Parsed> parseTuple(Location loc, ArrayList<Token> tokens) throws CompilerError {
+        ArrayList<AST.Expression<String, Types.Parsed>> result = (new Expression(loc, tokens)).parseListFull(")");
         switch (result.size()) {
         case 0:
-            return new AST.Variable<Unit, Types.Parsed, String>(loc, Unit.Unit, "()");
+            return new AST.Variable<String, Types.Parsed>(loc, Types.UNKNOWN_NEUTRAL, "()");
         case 1:
             return result.get(0);
         default:
-            return new AST.Tuple<Unit, Types.Parsed, String>(loc, Unit.Unit, result);
+            return new AST.Tuple<String, Types.Parsed>(loc, Types.UNKNOWN_NEUTRAL, result);
         }
     }
 }

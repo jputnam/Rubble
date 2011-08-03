@@ -2,17 +2,18 @@ package rubble.data;
 
 import java.util.ArrayList;
 
+
 public final class AST {
     
     public static enum ExpressionTag { AddressOf, Apply, AsType, BufferLiteral, IfE, Index, Number, Tuple, ValueAt, Variable }
     
-    public static final class Binding<Type, Phase, Name> {
+    public static final class Binding<Name, Phase> {
         
         public final Location loc;
-        public final ArrayList<Reference<Phase, Name>> references;
-        public final Expression<Type, Phase, Name> value;
+        public final ArrayList<Reference<Name, Phase>> references;
+        public final Expression<Name, Phase> value;
         
-        public Binding(Location loc, ArrayList<Reference<Phase, Name>> references, Expression<Type, Phase, Name> value) {
+        public Binding(Location loc, ArrayList<Reference<Name, Phase>> references, Expression<Name, Phase> value) {
             this.loc = loc;
             this.references = references;
             this.value = value;
@@ -20,19 +21,19 @@ public final class AST {
         
         public String toString() {
             String refs = "";
-            for (Reference<Phase, Name> r: references) {
+            for (Reference<Name, Phase> r: references) {
                 refs += r.toString();
             }
             return "(Binding " + loc.toString() + " " + refs + value.toString() + ")";
         }
     }
     
-    public static final class Reference<Phase, Name> {
+    public static final class Reference<Name, Phase> {
         
         public final Name name;
-        public final Types.Type<Phase> type;
+        public final Types.Type<Name, Phase> type;
         
-        public Reference(Name name, Types.Type<Phase> type) {
+        public Reference(Name name, Types.Type<Name, Phase> type) {
             this.name = name;
             this.type = type;
         }
@@ -45,7 +46,7 @@ public final class AST {
     
     public static enum DeclarationTag { Def, GlobalLet }
     
-    public abstract static class Declaration<Type, Phase, Name> {
+    public abstract static class Declaration<Name, Phase> {
         
         public Location loc;
         public DeclarationTag tag;
@@ -56,14 +57,14 @@ public final class AST {
         }
     }
     
-    public static final class Def<Type, Phase, Name> extends Declaration<Type, Phase, Name> {
+    public static final class Def<Name, Phase> extends Declaration<Name, Phase> {
         
         public final Name name;
-        public final ArrayList<Reference<Phase, Name>> arguments;
-        public final Types.Type<Phase> returnType;
-        public final ArrayList<Statement<Type, Phase, Name>> body;
+        public final ArrayList<Reference<Name, Phase>> arguments;
+        public final Types.Type<Name, Phase> returnType;
+        public final ArrayList<Statement<Name, Phase>> body;
         
-        public Def(Location loc, Name name, ArrayList<Reference<Phase, Name>> arguments, Types.Type<Phase> returnType, ArrayList<Statement<Type, Phase, Name>> body) {
+        public Def(Location loc, Name name, ArrayList<Reference<Name, Phase>> arguments, Types.Type<Name, Phase> returnType, ArrayList<Statement<Name, Phase>> body) {
             super(loc, DeclarationTag.Def);
             this.name = name;
             this.arguments = arguments;
@@ -73,29 +74,29 @@ public final class AST {
         
         public String toString() {
             String args = "";
-            for (Reference<Phase, Name> r: arguments) {
+            for (Reference<Name, Phase> r: arguments) {
                 args += r.toString();
             }
             String bodyString = "";
-            for (Statement<Type, Phase, Name> s: body) {
+            for (Statement<Name, Phase> s: body) {
                 bodyString += s.toString();
             }
             return "(Def " + loc.toString() + " " + name + " " + args + " : " + returnType.toString() + "{" + bodyString + "})";
         }
     }
     
-    public static final class GlobalLet<Type, Phase, Name> extends Declaration<Type, Phase, Name> {
+    public static final class GlobalLet<Name, Phase> extends Declaration<Name, Phase> {
         
-        public final ArrayList<Binding<Type, Phase, Name>> bindings;
+        public final ArrayList<Binding<Name, Phase>> bindings;
         
-        public GlobalLet(Location loc, ArrayList<Binding<Type, Phase, Name>> bindings) {
+        public GlobalLet(Location loc, ArrayList<Binding<Name, Phase>> bindings) {
             super(loc, DeclarationTag.GlobalLet);
             this.bindings = bindings;
         }
         
         public String toString() {
             String bs = "";
-            for (Binding<Type, Phase, Name> b: bindings) {
+            for (Binding<Name, Phase> b: bindings) {
                 bs += b.toString();
             }
             return "(GlobalLet " + loc.toString() + " " + bs + ")";
@@ -103,24 +104,24 @@ public final class AST {
     }
     
     
-    public abstract static class Expression<Type, Phase, Name> {
+    public abstract static class Expression<Name, Phase> {
         
         public final Location loc;
-        public final Type type;
+        public final Types.Type<Name, Phase> type;
         public final ExpressionTag tag;
         
-        public Expression(Location loc, Type type, ExpressionTag tag) {
+        public Expression(Location loc, Types.Type<Name, Phase> type, ExpressionTag tag) {
             this.loc = loc;
             this.type = type;
             this.tag = tag;
         }
     }
 
-    public static final class AddressOf<Type, Phase, Name> extends Expression<Type, Phase, Name> {
+    public static final class AddressOf<Name, Phase> extends Expression<Name, Phase> {
         
-        public final Expression<Type, Phase, Name> value;
+        public final Expression<Name, Phase> value;
         
-        public AddressOf(Location loc, Type type, Expression<Type, Phase, Name> value) {
+        public AddressOf(Location loc, Types.Type<Name, Phase> type, Expression<Name, Phase> value) {
             super(loc, type, ExpressionTag.AddressOf);
             this.value = value;
         }
@@ -130,12 +131,12 @@ public final class AST {
         }
     }
     
-    public static final class Apply<Type, Phase, Name> extends Expression<Type, Phase, Name> {
+    public static final class Apply<Name, Phase> extends Expression<Name, Phase> {
         
-        public final Expression<Type, Phase, Name> function;
-        public final Expression<Type, Phase, Name> argument;
+        public final Expression<Name, Phase> function;
+        public final Expression<Name, Phase> argument;
         
-        public Apply(Location loc, Type type, Expression<Type, Phase, Name> function, Expression<Type, Phase, Name> argument) {
+        public Apply(Location loc, Types.Type<Name, Phase> type, Expression<Name, Phase> function, Expression<Name, Phase> argument) {
             super(loc, type, ExpressionTag.Apply);
             this.function = function;
             this.argument = argument;
@@ -146,12 +147,12 @@ public final class AST {
         }
     }
     
-    public static final class AsType<Type, Phase, Name> extends Expression<Type, Phase, Name> {
+    public static final class AsType<Name, Phase> extends Expression<Name, Phase> {
         
-        public final Expression<Type, Phase, Name> value;
-        public final Types.Type<Phase> asType;
+        public final Expression<Name, Phase> value;
+        public final Types.Type<Name, Phase> asType;
         
-        public AsType(Location loc, Type type, Expression<Type, Phase, Name> value, Types.Type<Phase> asType) {
+        public AsType(Location loc, Types.Type<Name, Phase> type, Expression<Name, Phase> value, Types.Type<Name, Phase> asType) {
             super(loc, type, ExpressionTag.AsType);
             this.value = value;
             this.asType = asType;
@@ -162,31 +163,31 @@ public final class AST {
         }
     }
     
-    public static final class BufferLiteral<Type, Phase, Name> extends Expression<Type, Phase, Name> {
+    public static final class BufferLiteral<Name, Phase> extends Expression<Name, Phase> {
         
-        public final ArrayList<Expression<Type, Phase, Name>> es;
+        public final ArrayList<Expression<Name, Phase>> es;
         
-        public BufferLiteral(Location loc, Type type, ArrayList<Expression<Type, Phase, Name>> es) {
+        public BufferLiteral(Location loc, Types.Type<Name, Phase> type, ArrayList<Expression<Name, Phase>> es) {
             super(loc, type, ExpressionTag.BufferLiteral);
             this.es = es;
         }
         
         public String toString() {
             String ess = "";
-            for (Expression<Type, Phase, Name> e: es) {
+            for (Expression<Name, Phase> e: es) {
                 ess += e.toString();
             }
             return "[" + loc.toString() + " " + ess + "]";
         }
     }
     
-    public static final class IfE<Type, Phase, Name> extends Expression<Type, Phase, Name> {
+    public static final class IfE<Name, Phase> extends Expression<Name, Phase> {
         
-        public final Expression<Type, Phase, Name> cond;
-        public final Expression<Type, Phase, Name> trueBranch;
-        public final Expression<Type, Phase, Name> falseBranch;
+        public final Expression<Name, Phase> cond;
+        public final Expression<Name, Phase> trueBranch;
+        public final Expression<Name, Phase> falseBranch;
         
-        public IfE(Location loc, Type type, Expression<Type, Phase, Name> cond, Expression<Type, Phase, Name> trueBranch, Expression<Type, Phase, Name> falseBranch) {
+        public IfE(Location loc, Types.Type<Name, Phase> type, Expression<Name, Phase> cond, Expression<Name, Phase> trueBranch, Expression<Name, Phase> falseBranch) {
             super(loc, type, ExpressionTag.IfE);
             this.cond = cond;
             this.trueBranch = trueBranch;
@@ -198,12 +199,12 @@ public final class AST {
         }
     }
     
-    public static final class Index<Type, Phase, Name> extends Expression<Type, Phase, Name> {
+    public static final class Index<Name, Phase> extends Expression<Name, Phase> {
         
-        public final Expression<Type, Phase, Name> base;
-        public final Expression<Type, Phase, Name> offset;
+        public final Expression<Name, Phase> base;
+        public final Expression<Name, Phase> offset;
         
-        public Index(Location loc, Type type, Expression<Type, Phase, Name> base, Expression<Type, Phase, Name> offset) {
+        public Index(Location loc, Types.Type<Name, Phase> type, Expression<Name, Phase> base, Expression<Name, Phase> offset) {
             super(loc, type, ExpressionTag.Index);
             this.base = base;
             this.offset = offset;
@@ -214,11 +215,11 @@ public final class AST {
         }
     }
     
-    public static final class Number<Type, Phase, Name> extends Expression<Type, Phase, Name> {
+    public static final class Number<Name, Phase> extends Expression<Name, Phase> {
         
         public final String number;
         
-        public Number(Location loc, Type type, String number) {
+        public Number(Location loc, Types.Type<Name, Phase> type, String number) {
             super(loc, type, ExpressionTag.Number);
             this.number = number;
         }
@@ -232,29 +233,29 @@ public final class AST {
         }
     }
     
-    public static final class Tuple<Type, Phase, Name> extends Expression<Type, Phase, Name> {
+    public static final class Tuple<Name, Phase> extends Expression<Name, Phase> {
         
-        public final ArrayList<Expression<Type, Phase, Name>> es;
+        public final ArrayList<Expression<Name, Phase>> es;
         
-        public Tuple(Location loc, Type type, ArrayList<Expression<Type, Phase, Name>> es) {
+        public Tuple(Location loc, Types.Type<Name, Phase> type, ArrayList<Expression<Name, Phase>> es) {
             super(loc, type, ExpressionTag.Tuple);
             this.es = es;
         }
         
         public String toString() {
             String ess = "";
-            for (Expression<Type, Phase, Name> e: es) {
+            for (Expression<Name, Phase> e: es) {
                 ess += e.toString();
             }
             return "(Tuple " + loc.toString() + " " + ess + ")";
         }
     }
     
-    public static final class ValueAt<Type, Phase, Name> extends Expression<Type, Phase, Name> {
+    public static final class ValueAt<Name, Phase> extends Expression<Name, Phase> {
         
-        public final Expression<Type, Phase, Name> value;
+        public final Expression<Name, Phase> value;
         
-        public ValueAt(Location loc, Type type, Expression<Type, Phase, Name> value) {
+        public ValueAt(Location loc, Types.Type<Name, Phase> type, Expression<Name, Phase> value) {
             super(loc, type, ExpressionTag.ValueAt);
             this.value = value;
         }
@@ -264,11 +265,11 @@ public final class AST {
         }
     }
     
-    public static final class Variable<Type, Phase, Name> extends Expression<Type, Phase, Name> {
+    public static final class Variable<Name, Phase> extends Expression<Name, Phase> {
         
         public final Name name;
         
-        public Variable(Location loc, Type type, Name name) {
+        public Variable(Location loc, Types.Type<Name, Phase> type, Name name) {
             super(loc, type, ExpressionTag.Variable);
             this.name = name;
         }
@@ -281,24 +282,24 @@ public final class AST {
     
     public static enum LValueTag { Direct, IndexL, Indirect, TupleL };
     
-    public abstract static class LValue<Type, Phase, Name>{
+    public abstract static class LValue<Name, Phase>{
         
         public final Location loc;
-        public final Type type;
+        public final Types.Type<Name, Phase> type;
         public final LValueTag tag;
         
-        public LValue(Location loc, Type type, LValueTag tag) {
+        public LValue(Location loc, Types.Type<Name, Phase> type, LValueTag tag) {
             this.loc = loc;
             this.type = type;
             this.tag = tag;
         }
     }
     
-    public static final class Direct<Type, Phase, Name> extends LValue<Type, Phase, Name> {
+    public static final class Direct<Name, Phase> extends LValue<Name, Phase> {
         
         public final Name name;
         
-        public Direct(Location loc, Type type, Name name) {
+        public Direct(Location loc, Types.Type<Name, Phase> type, Name name) {
             super(loc, type, LValueTag.Direct);
             this.name = name;
         }
@@ -308,12 +309,12 @@ public final class AST {
         }
     }
     
-    public static final class IndexL<Type, Phase, N> extends LValue<Type, Phase, N>{
+    public static final class IndexL<Name, Phase> extends LValue<Name, Phase>{
         
-        public final LValue<Type, Phase, N> base;
-        public final Expression<Type, Phase, N> offset;
+        public final LValue<Name, Phase> base;
+        public final Expression<Name, Phase> offset;
         
-        public IndexL(Location loc, Type type, LValue<Type, Phase, N> base, Expression<Type, Phase, N> offset) {
+        public IndexL(Location loc, Types.Type<Name, Phase> type, LValue<Name, Phase> base, Expression<Name, Phase> offset) {
             super(loc, type, LValueTag.IndexL);
             this.base = base;
             this.offset = offset;
@@ -324,11 +325,11 @@ public final class AST {
         }
     }
     
-    public static final class Indirect<Type, Phase, Name> extends LValue<Type, Phase, Name> {
+    public static final class Indirect<Name, Phase> extends LValue<Name, Phase> {
         
-        public final Expression<Type, Phase, Name> address;
+        public final Expression<Name, Phase> address;
         
-        public Indirect(Location loc, Type type, Expression<Type, Phase, Name> address) {
+        public Indirect(Location loc, Types.Type<Name, Phase> type, Expression<Name, Phase> address) {
             super(loc, type, LValueTag.Indirect);
             this.address = address;
         }
@@ -338,18 +339,18 @@ public final class AST {
         }
     }
     
-    public static final class TupleL<Type, Phase, Name> extends LValue<Type, Phase, Name> {
+    public static final class TupleL<Name, Phase> extends LValue<Name, Phase> {
         
-        public final ArrayList<LValue<Type, Phase, Name>> lValues;
+        public final ArrayList<LValue<Name, Phase>> lValues;
         
-        public TupleL(Location loc, Type type, ArrayList<LValue<Type, Phase, Name>> lValues) {
+        public TupleL(Location loc, Types.Type<Name, Phase> type, ArrayList<LValue<Name, Phase>> lValues) {
             super(loc, type, LValueTag.TupleL);
             this.lValues = lValues;
         }
         
         public String toString() {
             String lvs = "";
-            for (LValue<Type, Phase, Name> l: lValues) {
+            for (LValue<Name, Phase> l: lValues) {
                 lvs += l.toString();
             }
             return "(TupleL " + loc.toString() + " " + lvs + ")";
@@ -359,7 +360,7 @@ public final class AST {
     
     public static enum StatementTag { Assign, Break, Call, Forever, IfS, Let, Nested, Return }
     
-    public abstract static class Statement<Type, Phase, Name> {
+    public abstract static class Statement<Name, Phase> {
         
         public final Location loc;
         public final StatementTag tag;
@@ -370,12 +371,12 @@ public final class AST {
         }
     }
     
-    public static final class Assign<Type, Phase, Name> extends Statement<Type, Phase, Name> {
+    public static final class Assign<Name, Phase> extends Statement<Name, Phase> {
         
-        public LValue<Type, Phase, Name> lValue;
-        public Expression<Type, Phase, Name> value;
+        public LValue<Name, Phase> lValue;
+        public Expression<Name, Phase> value;
         
-        public Assign(Location loc, LValue<Type, Phase, Name> lValue, Expression<Type, Phase, Name> value) {
+        public Assign(Location loc, LValue<Name, Phase> lValue, Expression<Name, Phase> value) {
             super(loc, StatementTag.Assign);
             this.lValue = lValue;
             this.value = value;
@@ -386,7 +387,7 @@ public final class AST {
         }
     }
     
-    public static final class Break<Type, Phase, Name> extends Statement<Type, Phase, Name> {
+    public static final class Break<Name, Phase> extends Statement<Name, Phase> {
         
         public final int depth;
         
@@ -400,12 +401,12 @@ public final class AST {
         }
     }
     
-    public static final class Call<Type, Phase, Name> extends Statement<Type, Phase, Name> {
+    public static final class Call<Name, Phase> extends Statement<Name, Phase> {
         
-        public final Expression<Type, Phase, Name> function;
-        public final Expression<Type, Phase, Name> argument;
+        public final Expression<Name, Phase> function;
+        public final Expression<Name, Phase> argument;
         
-        public Call(Location loc, Expression<Type, Phase, Name> function, Expression<Type, Phase, Name> argument) {
+        public Call(Location loc, Expression<Name, Phase> function, Expression<Name, Phase> argument) {
             super(loc, StatementTag.Call);
             this.function = function;
             this.argument = argument;
@@ -416,12 +417,12 @@ public final class AST {
         }
     }
     
-    public static final class Forever<Type, Phase, Name> extends Statement<Type, Phase, Name> {
+    public static final class Forever<Name, Phase> extends Statement<Name, Phase> {
         
         public final String label;
-        public final ArrayList<Statement<Type, Phase, Name>> body;
+        public final ArrayList<Statement<Name, Phase>> body;
         
-        public Forever(Location loc, String label, ArrayList<Statement<Type, Phase, Name>> block) {
+        public Forever(Location loc, String label, ArrayList<Statement<Name, Phase>> block) {
             super(loc, StatementTag.Forever);
             this.label = label;
             this.body = block;
@@ -429,20 +430,20 @@ public final class AST {
         
         public String toString() {
             String bs = "";
-            for (Statement<Type, Phase, Name> b: body) {
+            for (Statement<Name, Phase> b: body) {
                 bs += b.toString();
             }
             return "(Forever " + loc.toString() + " {" + label + "} "  + bs + ")";
         }
     }
     
-    public static final class IfS<Type, Phase, Name> extends Statement<Type, Phase, Name> {
+    public static final class IfS<Name, Phase> extends Statement<Name, Phase> {
         
-        public final Expression<Type, Phase, Name> cond;
-        public final ArrayList<Statement<Type, Phase, Name>> trueBranch;
-        public final ArrayList<Statement<Type, Phase, Name>> falseBranch;
+        public final Expression<Name, Phase> cond;
+        public final ArrayList<Statement<Name, Phase>> trueBranch;
+        public final ArrayList<Statement<Name, Phase>> falseBranch;
         
-        public IfS(Location loc, Expression<Type, Phase, Name> cond, ArrayList<Statement<Type, Phase, Name>> trueBranch, ArrayList<Statement<Type, Phase, Name>> falseBranch) {
+        public IfS(Location loc, Expression<Name, Phase> cond, ArrayList<Statement<Name, Phase>> trueBranch, ArrayList<Statement<Name, Phase>> falseBranch) {
             super(loc, StatementTag.IfS);
             this.cond = cond;
             this.trueBranch = trueBranch;
@@ -451,58 +452,58 @@ public final class AST {
         
         public String toString() {
             String ts = "";
-            for (Statement<Type, Phase, Name> t: trueBranch) {
+            for (Statement<Name, Phase> t: trueBranch) {
                 ts += t.toString();
             }
             String fs = "";
-            for (Statement<Type, Phase, Name> f: falseBranch) {
+            for (Statement<Name, Phase> f: falseBranch) {
                 fs += f.toString();
             }
             return "(IfS " + loc.toString() + " " + cond.toString() + " " + ts + " " + fs + ")";
         }
     }
     
-    public static final class Let<Type, Phase, Name> extends Statement<Type, Phase, Name> {
+    public static final class Let<Name, Phase> extends Statement<Name, Phase> {
         
-        public final ArrayList<Binding<Type, Phase, Name>> bindings;
+        public final ArrayList<Binding<Name, Phase>> bindings;
         
-        public Let(Location loc, ArrayList<Binding<Type, Phase, Name>> bindings) {
+        public Let(Location loc, ArrayList<Binding<Name, Phase>> bindings) {
             super(loc, StatementTag.Let);
             this.bindings = bindings;
         }
         
         public String toString() {
             String bs = "";
-            for (Binding<Type, Phase, Name> b: bindings) {
+            for (Binding<Name, Phase> b: bindings) {
                 bs += b.toString();
             }
             return "(Let " + loc.toString() + " " + bs + ")";
         }
     }
     
-    public static final class Nested<Type, Phase, Name> extends Statement<Type, Phase, Name> {
+    public static final class Nested<Name, Phase> extends Statement<Name, Phase> {
         
-        public final ArrayList<Statement<Type, Phase, Name>> body;
+        public final ArrayList<Statement<Name, Phase>> body;
         
-        public Nested(Location loc, ArrayList<Statement<Type, Phase, Name>> statements) {
+        public Nested(Location loc, ArrayList<Statement<Name, Phase>> statements) {
             super(loc, StatementTag.Nested);
             this.body = statements;
         }
         
         public String toString() {
             String ss = "";
-            for (Statement<Type, Phase, Name> s: body) {
+            for (Statement<Name, Phase> s: body) {
                 ss += s.toString();
             }
             return "(Nested " + loc.toString() + " " + ss + ")";
         }
     }
     
-    public static final class Return<Type, Phase, Name> extends Statement<Type, Phase, Name> {
+    public static final class Return<Name, Phase> extends Statement<Name, Phase> {
         
-        public Expression<Type, Phase, Name> value;
+        public Expression<Name, Phase> value;
         
-        public Return(Location loc, Expression<Type, Phase, Name> value) {
+        public Return(Location loc, Expression<Name, Phase> value) {
             super(loc, StatementTag.Return);
             this.value = value;
         }

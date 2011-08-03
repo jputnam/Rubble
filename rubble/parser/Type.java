@@ -7,10 +7,9 @@ import rubble.data.Location;
 import rubble.data.Token;
 import rubble.data.Types;
 import rubble.data.Types.GroundTag;
-import rubble.data.Types.Parsed;
 
 
-public final class Type extends Parser<Types.Type<Parsed>> {
+public final class Type extends Parser<Types.Type<String, Types.Parsed>> {
     
     public Type(ParseContext context) {
         super(context, "a type", ",");
@@ -20,22 +19,22 @@ public final class Type extends Parser<Types.Type<Parsed>> {
         super(loc, tokens, "a type", ",");
     }
     
-    private Types.Type<Types.Parsed> groundType(Types.GroundTag tag) {
-        return new Types.Known<Types.Parsed>(new Types.Ground(tag, false));
+    private Types.Type<String, Types.Parsed> groundType(Types.GroundTag tag) {
+        return new Types.Known<String, Types.Parsed>(new Types.Ground<String>(tag, false));
     }
     
-    protected LeftDenotation<Types.Type<Parsed>> leftDenotation(Token token) throws CompilerError {
+    protected LeftDenotation<Types.Type<String, Types.Parsed>> leftDenotation(Token token) throws CompilerError {
         return null;
     }
 
-    protected Types.Type<Parsed> nullDenotation(Token token) throws CompilerError {
+    protected Types.Type<String, Types.Parsed> nullDenotation(Token token) throws CompilerError {
         switch (token.tag){
         case Block:
             if (!token.source.equals("(")) {
                 throw errorUnexpectedToken(token.loc, token.source);
             }
-            ArrayList<Types.Type<Parsed>> domainList = (new Type(token.loc, token.subtokens)).parseListFull(")");
-            Types.Type<Parsed> domain;
+            ArrayList<Types.Type<String, Types.Parsed>> domainList = (new Type(token.loc, token.subtokens)).parseListFull(")");
+            Types.Type<String, Types.Parsed> domain;
             
             switch (domainList.size()) {
             case 0:
@@ -45,18 +44,18 @@ public final class Type extends Parser<Types.Type<Parsed>> {
                 domain = domainList.get(0);
                 break;
             default:
-                domain = new Types.Tuple<Parsed>(domainList, false);
+                domain = new Types.Tuple<String, Types.Parsed>(domainList, false);
             }
             
             if (context.isLive() && context.lookahead().source.equals("->")) {
                 context.index++;
-                return new Types.Arrow<Parsed>(domain, parse(0), false);
+                return new Types.Arrow<String, Types.Parsed>(domain, parse(0), false);
             } else {
                 return domain;
             }
         case Identifier:
             if (token.source.equals("_")) {
-                return new Types.Unknown(false);
+                return Types.UNKNOWN_IMMUTABLE;
             } else if (token.source.equals("Boolean")) {
                 return groundType(GroundTag.Boolean);
             
@@ -67,27 +66,27 @@ public final class Type extends Parser<Types.Type<Parsed>> {
                 }
                 Type parser = new Type(block.loc, block.subtokens);
                 
-                Types.Nat<Parsed, String> size;
+                Types.Nat<String, Types.Parsed> size;
                 Token sizeToken = parser.context.nextTokenExpecting("a buffer size");
                 switch (sizeToken.tag) {
                 case Identifier:
                     if (sizeToken.source.equals("_")) {
                         size = new Types.NatUnknown();
                     } else {
-                        size = new Types.NatExternal<Parsed, String>(sizeToken.source);
+                        size = new Types.NatExternal<String, Types.Parsed>(sizeToken.source);
                     }
                     break;
                 case Number:
                     if (sizeToken.source.charAt(0) == '-' || sizeToken.source.equals("0")) {
                         throw ParseContext.errorUnexpected(sizeToken.loc, "a positive integer", "found " + sizeToken.source);
                     }
-                    size = new Types.NatKnown<Parsed, String>(new Types.NatLiteral(Long.parseLong(sizeToken.source)));
+                    size = new Types.NatKnown<String, Types.Parsed>(new Types.NatLiteral(Long.parseLong(sizeToken.source)));
                     break;
                 default:
                     throw ParseContext.errorUnexpected(sizeToken.loc, "the buffer's size", "found " + sizeToken.source);
                 }
                 parser.context.requireToken(",");
-                return new Types.Buffer<Parsed, String>(size, parser.parseFull("]"), false);
+                return new Types.Buffer<String, Types.Parsed>(size, parser.parseFull("]"), false);
             
             } else if (token.source.equals("Int8")) {
                 return groundType(GroundTag.Int8);
@@ -103,7 +102,7 @@ public final class Type extends Parser<Types.Type<Parsed>> {
                 if (!block.source.equals("[")) {
                     throw ParseContext.errorUnexpected(block.loc, "[", "found " + block.source);
                 }
-                return new Types.Ptr<Parsed>((new Type(block.loc, block.subtokens)).parseFull("]"), false);
+                return new Types.Ptr<String, Types.Parsed>((new Type(block.loc, block.subtokens)).parseFull("]"), false);
             
             } else if (token.source.equals("UInt8")) {
                 return groundType(GroundTag.UInt8);
@@ -119,7 +118,7 @@ public final class Type extends Parser<Types.Type<Parsed>> {
             }
         case Reserved:
             if (token.source.equals("var")) {
-                Types.Type<Parsed> t = parse(5);
+                Types.Type<String, Types.Parsed> t = parse(5);
                 return t.mutable();
             }
             throw errorUnexpectedToken(token.loc, token.source);

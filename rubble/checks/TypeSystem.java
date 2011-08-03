@@ -1,8 +1,7 @@
-package rubble.test;
+package rubble.checks;
 
 import rubble.data.AST;
 import rubble.data.Types;
-import rubble.data.Unit;
 
 
 /**
@@ -12,7 +11,7 @@ import rubble.data.Unit;
  */
 public final class TypeSystem {
     
-    public static AST.Expression<Types.Type<Types.Poly>, Types.Poly, String> check(AST.Expression<Unit, Types.Parsed, String> ast) {
+    public static AST.Expression<String, Types.Poly> check(AST.Expression<String, Types.Parsed> ast) {
         return null;
     }
     

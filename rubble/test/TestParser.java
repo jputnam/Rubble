@@ -444,7 +444,7 @@ public final class TestParser {
         },
         new Matches() {
             public String name() { return "Statement 26"; }
-            public String expected() { return "(Let @1,1,1,10 (Binding @1,5,1,10 {x (? false)}(@1,9,1,10 {1})))"; }
+            public String expected() { return "(Let @1,1,1,10 (Binding @1,5,1,10 {x (? false false)}(@1,9,1,10 {1})))"; }
             public String userCode() throws CompilerError {
                 return parseStmt("let x = 1");
             }
@@ -458,35 +458,35 @@ public final class TestParser {
         },
         new Matches() {
             public String name() { return "Statement 28"; }
-            public String expected() { return "(Let @1,1,1,16 (Binding @1,5,1,16 {x (? false)}(Tuple @1,9,1,16 (@1,9,1,10 {1})(@1,12,1,13 {2})(@1,15,1,16 {3}))))"; }
+            public String expected() { return "(Let @1,1,1,16 (Binding @1,5,1,16 {x (? false false)}(Tuple @1,9,1,16 (@1,9,1,10 {1})(@1,12,1,13 {2})(@1,15,1,16 {3}))))"; }
             public String userCode() throws CompilerError {
                 return parseStmt("let x = 1, 2, 3");
             }
         },
         new Matches() {
             public String name() { return "Statement 29"; }
-            public String expected() { return "(Let @1,1,1,19 (Binding @1,5,1,19 {a (? false)}{b (? false)}{c (? false)}{d (? false)}(@1,18,1,19 {1})))"; }
+            public String expected() { return "(Let @1,1,1,19 (Binding @1,5,1,19 {a (? false false)}{b (? false false)}{c (? false false)}{d (? false false)}(@1,18,1,19 {1})))"; }
             public String userCode() throws CompilerError {
                 return parseStmt("let a, b, c, d = 1");
             }
         },
         new Matches() {
             public String name() { return "Statement 30"; }
-            public String expected() { return "(Let @1,1,1,27 (Binding @1,5,1,27 {a (? false)}{b (? false)}{c <(Ground UInt64 false)>}(@1,26,1,27 {1})))"; }
+            public String expected() { return "(Let @1,1,1,27 (Binding @1,5,1,27 {a (? false false)}{b (? false false)}{c <(Ground UInt64 false)>}(@1,26,1,27 {1})))"; }
             public String userCode() throws CompilerError {
                 return parseStmt("let a, b: _, c: UInt64 = 1");
             }
         },
         new Matches() {
             public String name() { return "Statement 31"; }
-            public String expected() { return "(Let @1,1,1,23 (Binding @1,5,1,23 {a <(Ground Int32 false)>}{b <(Ground Int32 false)>}{c (? false)}(@1,22,1,23 {1})))"; }
+            public String expected() { return "(Let @1,1,1,23 (Binding @1,5,1,23 {a <(Ground Int32 false)>}{b <(Ground Int32 false)>}{c (? false false)}(@1,22,1,23 {1})))"; }
             public String userCode() throws CompilerError {
                 return parseStmt("let a, b: Int32, c = 1");
             }
         },
         new Matches() {
             public String name() { return "Statement 32"; }
-            public String expected() { return "(Let @1,1,1,17 (Binding @1,5,1,17 {a (? true)}(@1,16,1,17 {1})))"; }
+            public String expected() { return "(Let @1,1,1,17 (Binding @1,5,1,17 {a (? false true)}(@1,16,1,17 {1})))"; }
             public String userCode() throws CompilerError {
                 return parseStmt("let a: var _ = 1");
             }
@@ -500,21 +500,21 @@ public final class TestParser {
         },
         new Matches() {
             public String name() { return "Statement 34"; }
-            public String expected() { return "(Let @1,1,1,14 (Binding @1,5,1,14 {a (? true)}(@1,13,1,14 {1})))"; }
+            public String expected() { return "(Let @1,1,1,14 (Binding @1,5,1,14 {a (? false true)}(@1,13,1,14 {1})))"; }
             public String userCode() throws CompilerError {
                 return parseStmt("let var a = 1");
             }
         },
         new Matches() {
             public String name() { return "Statement 35"; }
-            public String expected() { return "(Let @1,1,1,17 (Binding @1,5,1,17 {a (? true)}{b (? false)}(@1,16,1,17 {1})))"; }
+            public String expected() { return "(Let @1,1,1,17 (Binding @1,5,1,17 {a (? false true)}{b (? false false)}(@1,16,1,17 {1})))"; }
             public String userCode() throws CompilerError {
                 return parseStmt("let var a, b = 1");
             }
         },
         new Matches() {
             public String name() { return "Statement 36"; }
-            public String expected() { return "(Let @1,1,1,17 (Binding @1,5,1,17 {a (? false)}{b (? true)}(@1,16,1,17 {1})))"; }
+            public String expected() { return "(Let @1,1,1,17 (Binding @1,5,1,17 {a (? false false)}{b (? false true)}(@1,16,1,17 {1})))"; }
             public String userCode() throws CompilerError {
                 return parseStmt("let a, var b = 1");
             }
@@ -570,7 +570,7 @@ public final class TestParser {
         },
         new Matches() {
             public String name() { return "Declaration 4"; }
-            public String expected() { return "(Def @1,1,1,33 a {b <(Ground Int8 false)>}{c (? true)}{d (? false)} : <(Ground Int8 false)>{})"; }
+            public String expected() { return "(Def @1,1,1,33 a {b <(Ground Int8 false)>}{c (? false true)}{d (? false false)} : <(Ground Int8 false)>{})"; }
             public String userCode() throws CompilerError {
                 return parseDecl("def a(b: Int8, var c, d) Int8 do");
             }
@@ -591,7 +591,7 @@ public final class TestParser {
         },
         new Matches() {
             public String name() { return "Declaration 7"; }
-            public String expected() { return "(GlobalLet @1,1,1,20 (Binding @1,8,1,13 {a (? false)}(@1,12,1,13 {1}))(Binding @1,15,1,20 {b (? false)}(@1,19,1,20 {2})))"; }
+            public String expected() { return "(GlobalLet @1,1,1,20 (Binding @1,8,1,13 {a (? false false)}(@1,12,1,13 {1}))(Binding @1,15,1,20 {b (? false false)}(@1,19,1,20 {2})))"; }
             public String userCode() throws CompilerError {
                 return parseDecl("let do a = 1; b = 2");
             }
