@@ -73,7 +73,7 @@ public abstract class Parser<T> {
     
     protected abstract T nullDenotation(Token token) throws CompilerError;
     
-    public static final ArrayList<AST.Declaration<String, Types.Parsed>> parse(ArrayList<Token> tokens) throws CompilerError {
+    public static final ArrayList<AST.Declaration<Types.Parsed>> parse(ArrayList<Token> tokens) throws CompilerError {
         Location loc = (tokens.size() == 0) ? new Location(1,1) : new Location(tokens.get(0).loc, tokens.get(tokens.size() - 1).loc);
         return (new Declaration(loc, tokens)).parseListFull("EOF");
     }

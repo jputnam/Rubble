@@ -11,7 +11,7 @@ import rubble.data.Types;
  */
 public final class TypeSystem {
     
-    public static AST.Expression<String, Types.Poly> check(AST.Expression<String, Types.Parsed> ast) {
+    public static AST.Expression<Types.Poly> infer(AST.Expression<Types.Parsed> ast) {
         return null;
     }
     

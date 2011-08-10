@@ -24,10 +24,10 @@ public final class FunctionsReturn {
      * @param declarations
      * @throws CompilerError
      */
-    public static void ensureFunctionsReturn(ArrayList<AST.Declaration<String, Types.Parsed>> declarations) throws CompilerError {
-        for (AST.Declaration<String, Types.Parsed> d: declarations) {
+    public static void ensureFunctionsReturn(ArrayList<AST.Declaration<Types.Parsed>> declarations) throws CompilerError {
+        for (AST.Declaration<Types.Parsed> d: declarations) {
             if (d.tag == AST.DeclarationTag.Def) {
-                if (statementsReturn(((AST.Def<String, Types.Parsed>)d).body) >= 0) {
+                if (statementsReturn(((AST.Def<Types.Parsed>)d).body) >= 0) {
                     throw CompilerError.check(d.loc, "The function may reach the end of control flow without returning a value.");
                 }
             }
@@ -47,18 +47,18 @@ public final class FunctionsReturn {
      * statements are broken out of, and a negative number otherwise.
      * @throws CompilerError
      */
-    private static int statementsReturn(ArrayList<AST.Statement<String, Types.Parsed>> body) throws CompilerError {
+    private static int statementsReturn(ArrayList<AST.Statement<Types.Parsed>> body) throws CompilerError {
         for (int i = body.size() - 1; i >= 0; i--) {
             
-            AST.Statement<String, Types.Parsed> stmt = body.get(i);
+            AST.Statement<Types.Parsed> stmt = body.get(i);
             int depth;
             
             switch (stmt.tag) {
             case Break:
-                return ((AST.Break<String, Types.Parsed>)stmt).depth + 1;
+                return ((AST.Break<Types.Parsed>)stmt).depth + 1;
             
             case Forever:
-                depth = statementsReturn(((AST.Forever<String, Types.Parsed>)stmt).body);
+                depth = statementsReturn(((AST.Forever<Types.Parsed>)stmt).body);
                 switch (depth) {
                 case 0:
                     return -1;
@@ -70,7 +70,7 @@ public final class FunctionsReturn {
                 break;
             
             case IfS:
-                AST.IfS<String, Types.Parsed> ifs = (AST.IfS<String, Types.Parsed>) stmt;
+                AST.IfS<Types.Parsed> ifs = (AST.IfS<Types.Parsed>) stmt;
                 depth = Math.max(statementsReturn(ifs.trueBranch), statementsReturn(ifs.falseBranch));
                 switch(depth) {
                 case 0:
@@ -81,7 +81,7 @@ public final class FunctionsReturn {
                 break;
             
             case Nested:
-                depth = statementsReturn(((AST.Nested<String, Types.Parsed>)stmt).body);
+                depth = statementsReturn(((AST.Nested<Types.Parsed>)stmt).body);
                 switch (depth) {
                 case 0:
                     break;

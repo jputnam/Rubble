@@ -28,25 +28,25 @@ public final class MainExists {
      * @param declarations
      * @throws CompilerError
      */
-    public static void ensureMainExists(Location loc, ArrayList<AST.Declaration<String, Types.Parsed>> declarations) throws CompilerError {
+    public static void ensureMainExists(Location loc, ArrayList<AST.Declaration<Types.Parsed>> declarations) throws CompilerError {
         boolean found = false;
-        for (AST.Declaration<String, Types.Parsed> d: declarations) {
+        for (AST.Declaration<Types.Parsed> d: declarations) {
             
             if (d.tag == AST.DeclarationTag.Def) {
-                AST.Def<String, Types.Parsed> def = (AST.Def<String, Types.Parsed>)d;
+                AST.Def<Types.Parsed> def = (AST.Def<Types.Parsed>)d;
                 
                 if (def.name.equals("main")) {
-                    Types.Type<String, Types.Parsed> returnType = def.returnType;
+                    Types.Type<Types.Parsed> returnType = def.returnType;
                     if (returnType.isMutable == true || !isSpecificGround(returnType, Types.GroundTag.Int32)) {
                         throw CompilerError.parse(def.loc, "main() must return an immutable Int32.");
                     }
                     
-                    ArrayList<AST.Reference<String, Types.Parsed>> args = def.arguments;
+                    ArrayList<AST.Reference<Types.Parsed>> args = def.arguments;
                     if (args.size() != 1) {
                         throw CompilerError.parse(def.loc, "main() must take one immutable () argument.");
                     }
                     
-                    Types.Type<String, Types.Parsed> type = args.get(0).type;
+                    Types.Type<Types.Parsed> type = args.get(0).type;
                     if (type.isMutable == true || !isSpecificGround(type, Types.GroundTag.Unit)) {
                         throw CompilerError.parse(def.loc, "main() must take one immutable () argument.");
                     }
@@ -57,13 +57,13 @@ public final class MainExists {
         if (!found) { throw CompilerError.parse(loc, "A function named main must exist."); }
     }
     
-    private static boolean isSpecificGround(Types.Type<String, Types.Parsed> type, Types.GroundTag tag) {
+    private static boolean isSpecificGround(Types.Type<Types.Parsed> type, Types.GroundTag tag) {
         if (type.tag != Types.Tag.Known) { return false; }
         
-        Types.Type<String, Types.Mono> inner = ((Types.Known<String, Types.Parsed>)type).type;
+        Types.Type<Types.Mono> inner = ((Types.Known<Types.Parsed>)type).type;
         if (inner.tag != Types.Tag.Ground) { return false; }
         
-        return ((Types.Ground<String>)inner).groundTag == tag;
+        return ((Types.Ground)inner).groundTag == tag;
     }
     
 }
