@@ -3,6 +3,7 @@ package rubble.data;
 import java.util.ArrayList;
 
 import rubble.data.Names.ResolvedName;
+import rubble.data.Types.Poly;
 
 /**
  * A container class for the abstract term-level syntax.  Types are elsewhere,
@@ -28,8 +29,8 @@ public final class AST {
             this.type = type;
         }
         
-        public void resolveNames(NamingContext context) throws CompilerError {
-            type.resolveNames(context);
+        public Reference<ResolvedName, Poly> resolveNames(NamingContext context) throws CompilerError {
+            return new Reference<ResolvedName, Poly>(loc, mode, name, type.resolveNames(context));
         }
         
         public String toString() {
@@ -48,19 +49,15 @@ public final class AST {
             this.references = references;
             this.value = value;
         }
-        /*
-        public void resolveNames(NamingContext context, boolean isLocal) throws CompilerError {
-            value.resolveNames(context);
+        
+        public Binding<ResolvedName, Poly> resolveNames(NamingContext context) throws CompilerError {
+            ArrayList<Reference<ResolvedName, Poly>> newReferences = new ArrayList<Reference<ResolvedName, Poly>>();
             for (Reference<Name, Phase> r: references) {
-                r.resolveNames(context);
-                if (isLocal) {
-                    context.observeLocal(loc, r.mode, r.name);
-                } else {
-                    context.observeGlobal(loc, r.mode, r.name);
-                }
+                newReferences.add(r.resolveNames(context));
             }
+            return new Binding<ResolvedName, Poly>(loc, newReferences, value.resolveNames(context));
         }
-        */
+        
         public String toString() {
             String refs = "";
             for (Reference<Name, Phase> r: references) {
@@ -82,8 +79,6 @@ public final class AST {
             this.loc = loc;
             this.tag = tag;
         }
-        
-        // public abstract void resolveNames(NamingContext context) throws CompilerError;
     }
     
     public static final class Def<Name, Phase> extends Declaration<Name, Phase> {
@@ -100,7 +95,7 @@ public final class AST {
             this.returnType = returnType;
             this.body = body;
         }
-        /*
+        /* 
         public void resolveNames(NamingContext context) throws CompilerError {
             context.observeGlobal(loc, name);
             for (Reference<Phase> r: arguments) {
@@ -135,6 +130,7 @@ public final class AST {
             this.bindings = bindings;
         }
         /*
+         * Don't forget that resolving the bindings doesn't observe the names.
         public void resolveNames(NamingContext context) throws CompilerError {
             for (Binding<Phase> binding: bindings) {
                 binding.resolveNames(context, false);
@@ -165,7 +161,7 @@ public final class AST {
             this.tag = tag;
         }
         
-        // public abstract void resolveNames(NamingContext context) throws CompilerError;
+        public abstract Expression<ResolvedName, Poly> resolveNames(NamingContext context) throws CompilerError;
     }
 
     public static final class AddressOf<Name, Phase> extends Expression<Name, Phase> {
@@ -176,11 +172,11 @@ public final class AST {
             super(loc, type, ExpressionTag.AddressOf);
             this.value = value;
         }
-        /*
-        public void resolveNames(NamingContext context) throws CompilerError {
-            value.resolveNames(context);
+        
+        public Expression<ResolvedName, Poly> resolveNames(NamingContext context) throws CompilerError {
+            return new AddressOf<ResolvedName, Poly>(loc, type.resolveNames(context), value.resolveNames(context));
         }
-        */
+        
         public String toString() {
             return "(& " + loc.toString() + " " + value.toString() + ")";
         }
@@ -196,12 +192,11 @@ public final class AST {
             this.function = function;
             this.argument = argument;
         }
-        /*
-        public void resolveNames(NamingContext context) throws CompilerError {
-            function.resolveNames(context);
-            argument.resolveNames(context);
+        
+        public Expression<ResolvedName, Poly> resolveNames(NamingContext context) throws CompilerError {
+            return new Apply<ResolvedName, Poly>(loc, type.resolveNames(context), function.resolveNames(context), argument.resolveNames(context));
         }
-        */
+        
         public String toString() {
             return "(A " + loc.toString() + " " + function.toString() + " $ " + argument.toString() + ")";
         }
@@ -215,11 +210,11 @@ public final class AST {
             super(loc, type, ExpressionTag.AsType);
             this.value = value;
         }
-        /*
-        public void resolveNames(NamingContext context) throws CompilerError {
-            value.resolveNames(context);
+        
+        public Expression<ResolvedName, Poly> resolveNames(NamingContext context) throws CompilerError {
+            return new AsType<ResolvedName, Poly>(loc, type.resolveNames(context), value.resolveNames(context));
         }
-        */
+        
         public String toString() {
             return "(AsType " + loc.toString() + " " + value.toString() + " : " + type.toString() + ")";
         }
@@ -233,13 +228,15 @@ public final class AST {
             super(loc, type, ExpressionTag.BufferLiteral);
             this.es = es;
         }
-        /*
-        public void resolveNames(NamingContext context) throws CompilerError {
+        
+        public Expression<ResolvedName, Poly> resolveNames(NamingContext context) throws CompilerError {
+            ArrayList<Expression<ResolvedName, Poly>> newEs = new ArrayList<Expression<ResolvedName, Poly>>();
             for (Expression<Name, Phase> e: es) {
-                e.resolveNames(context);
+                newEs.add(e.resolveNames(context));
             }
+            return new BufferLiteral<ResolvedName, Poly>(loc, type.resolveNames(context), newEs);
         }
-        */
+        
         public String toString() {
             String ess = "";
             for (Expression<Name, Phase> e: es) {
@@ -261,13 +258,11 @@ public final class AST {
             this.trueBranch = trueBranch;
             this.falseBranch = falseBranch;
         }
-        /*
-        public void resolveNames(NamingContext context) throws CompilerError {
-            cond.resolveNames(context);
-            trueBranch.resolveNames(context);
-            falseBranch.resolveNames(context);
+        
+        public Expression<ResolvedName, Poly> resolveNames(NamingContext context) throws CompilerError {
+            return new IfE<ResolvedName, Poly>(loc, type.resolveNames(context), cond.resolveNames(context), trueBranch.resolveNames(context), falseBranch.resolveNames(context));
         }
-        */
+        
         public String toString() {
             return "(IfE " + loc.toString() + " " + cond.toString() + " " + trueBranch.toString() + " " + falseBranch.toString() + ")";
         }
@@ -283,12 +278,11 @@ public final class AST {
             this.base = base;
             this.offset = offset;
         }
-        /*
-        public void resolveNames(NamingContext context) throws CompilerError {
-            base.resolveNames(context);
-            offset.resolveNames(context);
+        
+        public Expression<ResolvedName, Poly> resolveNames(NamingContext context) throws CompilerError {
+            return new Index<ResolvedName, Poly>(loc, type.resolveNames(context), base.resolveNames(context), offset.resolveNames(context));
         }
-        */
+        
         public String toString() {
             return "(Index " + loc.toString() + " " + base.toString() + " " + offset.toString() + ")";
         }
@@ -307,7 +301,9 @@ public final class AST {
             return number.charAt(0) != '-' && !(number.equals("0"));
         }
         
-        // public void resolveNames(NamingContext context) throws CompilerError { }
+        public Expression<ResolvedName, Poly> resolveNames(NamingContext context) throws CompilerError {
+            return new Number<ResolvedName, Poly>(loc, type.resolveNames(context), number);
+        }
         
         public String toString() {
             return "(" + loc.toString() + " {" + number + "})";
@@ -322,13 +318,15 @@ public final class AST {
             super(loc, type, ExpressionTag.Tuple);
             this.es = es;
         }
-        /*
-        public void resolveNames(NamingContext context) throws CompilerError {
+        
+        public Expression<ResolvedName, Poly> resolveNames(NamingContext context) throws CompilerError {
+            ArrayList<Expression<ResolvedName, Poly>> newEs = new ArrayList<Expression<ResolvedName, Poly>>();
             for (Expression<Name, Phase> e: es) {
-                e.resolveNames(context);
+                newEs.add(e.resolveNames(context));
             }
+            return new Tuple<ResolvedName, Poly>(loc, type.resolveNames(context), newEs);
         }
-        */
+        
         public String toString() {
             String ess = "";
             for (Expression<Name, Phase> e: es) {
@@ -346,11 +344,11 @@ public final class AST {
             super(loc, type, ExpressionTag.ValueAt);
             this.value = value;
         }
-        /*
-        public void resolveNames(NamingContext context) throws CompilerError {
-            value.resolveNames(context);
+        
+        public Expression<ResolvedName, Poly> resolveNames(NamingContext context) throws CompilerError {
+            return new ValueAt<ResolvedName, Poly>(loc, type.resolveNames(context), value.resolveNames(context));
         }
-        */
+        
         public String toString() {
             return "(* " + loc.toString() + " " + value.toString() + ")";
         }
@@ -358,22 +356,19 @@ public final class AST {
     
     public static final class Variable<Name, Phase> extends Expression<Name, Phase> {
         
-        public final String source;
-        public final ResolvedName name;
+        public final Name name;
         
-        public Variable(Location loc, Types.Type<Name, Phase> type, String source) {
+        public Variable(Location loc, Types.Type<Name, Phase> type, Name name) {
             super(loc, type, ExpressionTag.Variable);
-            this.source = source;
-            this.name = null;
+            this.name = name;
         }
-        /*
-        public void resolveNames(NamingContext context) throws CompilerError {
-            name = context.resolve(loc, source);
+        
+        public Expression<ResolvedName, Poly> resolveNames(NamingContext context) throws CompilerError {
+            return new Variable<ResolvedName, Poly>(loc, type.resolveNames(context), context.resolve(loc, name.toString()));
         }
-        */
+        
         public String toString() {
-            String nameString = name == null ? source : name.toString();
-            return "(Var " + loc.toString() + " {" + nameString + "})";
+            return "(Var " + loc.toString() + " {" + name.toString() + "})";
         }
     }
     
@@ -392,24 +387,22 @@ public final class AST {
             this.tag = tag;
         }
         
-        // public abstract void resolveNames(NamingContext context) throws CompilerError;
+        public abstract LValue<ResolvedName, Poly> resolveNames(NamingContext context) throws CompilerError;
     }
     
     public static final class Direct<Name, Phase> extends LValue<Name, Phase> {
         
-        public final String source;
-        public final ResolvedName name;
+        public final Name name;
         
-        public Direct(Location loc, Types.Type<Name, Phase> type, String source) {
+        public Direct(Location loc, Types.Type<Name, Phase> type, Name name) {
             super(loc, type, LValueTag.Direct);
-            this.source = source;
-            this.name = null;
+            this.name = name;
         }
-        /*
-        public void resolveNames(NamingContext context) throws CompilerError {
-            name = context.resolve(loc, source);
+        
+        public LValue<ResolvedName, Poly> resolveNames(NamingContext context) throws CompilerError {
+            return new Direct<ResolvedName, Poly>(loc, type.resolveNames(context), context.resolve(loc, name.toString())); 
         }
-        */
+        
         public String toString() {
             return "(Direct " + loc.toString() + " {" + name + "})";
         }
@@ -425,12 +418,11 @@ public final class AST {
             this.base = base;
             this.offset = offset;
         }
-        /*
-        public void resolveNames(NamingContext context) throws CompilerError {
-            base.resolveNames(context);
-            offset.resolveNames(context);
+        
+        public LValue<ResolvedName, Poly> resolveNames(NamingContext context) throws CompilerError {
+            return new IndexL<ResolvedName, Poly>(loc, type.resolveNames(context), base.resolveNames(context), offset.resolveNames(context));
         }
-        */
+        
         public String toString() {
             return "(IndexL " + loc.toString() + " " + base.toString() + "[" + offset.toString() + "])";
         }
@@ -444,11 +436,11 @@ public final class AST {
             super(loc, type, LValueTag.Indirect);
             this.address = address;
         }
-        /*
-        public void resolveNames(NamingContext context) throws CompilerError {
-            address.resolveNames(context);
+        
+        public LValue<ResolvedName, Poly> resolveNames(NamingContext context) throws CompilerError {
+            return new Indirect<ResolvedName, Poly>(loc, type.resolveNames(context), address.resolveNames(context));
         }
-        */
+        
         public String toString() {
             return "(Indirect " + loc.toString() + " " + address.toString() + ")";
         }
@@ -462,13 +454,15 @@ public final class AST {
             super(loc, type, LValueTag.TupleL);
             this.lValues = lValues;
         }
-        /*
-        public void resolveNames(NamingContext context) throws CompilerError {
+        
+        public LValue<ResolvedName, Poly> resolveNames(NamingContext context) throws CompilerError {
+            ArrayList<LValue<ResolvedName, Poly>> newLValues = new ArrayList<LValue<ResolvedName, Poly>>();
             for (LValue<Name, Phase> lValue: lValues) {
-                lValue.resolveNames(context);
+                newLValues.add(lValue.resolveNames(context));
             }
+            return new TupleL<ResolvedName, Poly>(loc, type.resolveNames(context), newLValues);
         }
-        */
+        
         public String toString() {
             String lvs = "";
             for (LValue<Name, Phase> l: lValues) {
@@ -624,6 +618,7 @@ public final class AST {
             this.bindings = bindings;
         }
         /*
+         * Don't forget that binding resolution doesn't observe the names.
         public void resolveNames(NamingContext context) throws CompilerError {
             for (Binding<Phase> b: bindings) {
                 b.resolveNames(context, true);

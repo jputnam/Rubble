@@ -15,7 +15,7 @@ import rubble.data.Types.*;
  * included with this source.
  */
 public final class ResolveNames {
-    
+    /*
     public static void resolveNames(ArrayList<Declaration<Parsed>> ds) throws CompilerError {
         
         // Name resolution is in definition order.  Why?  Because I don't want
@@ -25,5 +25,5 @@ public final class ResolveNames {
             d.resolveNames(context);
             context.discardNonGlobals();
         }
-    }
+    }*/
 }

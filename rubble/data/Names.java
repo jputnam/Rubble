@@ -1,5 +1,7 @@
 package rubble.data;
 
+import rubble.data.Types.*;
+
 /**
  * Name resolution.  Resolved names indicate the variable mode; its type in
  * encoded in the term in which it appears.
@@ -14,14 +16,16 @@ public final class Names {
     
     public static abstract class ResolvedName {
         
-        public final String source;
         public final Tag tag;
         public final Mode mode;
+        public final String source;
+        public final Type<ResolvedName, Poly> type;
         
-        public ResolvedName(Tag tag, String source, Mode mode) {
+        public ResolvedName(Tag tag, Mode mode, String source, Type<ResolvedName, Poly> type) {
             this.tag = tag;
-            this.source = source;
             this.mode = mode;
+            this.source = source;
+            this.type = type;
         }
     }
     
@@ -29,8 +33,8 @@ public final class Names {
         
         public final int index;
         
-        public Argument(String source, int index, Mode mode) {
-            super(Tag.Argument, source, mode);
+        public Argument(Mode mode, String source, Type<ResolvedName, Poly> type, int index) {
+            super(Tag.Argument, mode, source, type);
             this.index = index;
         }
         
@@ -41,8 +45,8 @@ public final class Names {
     
     public static final class Global extends ResolvedName {
         
-        public Global(String source, Mode mode) {
-            super(Tag.Global, source, mode);
+        public Global(Mode mode, String source, Type<ResolvedName, Poly> type) {
+            super(Tag.Global, mode, source, type);
         }
         
         public String toString() {
@@ -54,8 +58,8 @@ public final class Names {
         
         public final int index;
         
-        public Local(String source, int index, Mode mode) {
-            super(Tag.Local, source, mode);
+        public Local(Mode mode, String source, Type<ResolvedName, Poly> type, int index) {
+            super(Tag.Local, mode, source, type);
             this.index = index;
         }
         

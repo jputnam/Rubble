@@ -1,2 +1,4 @@
-Make name resolution be a method of AST and Type by making it parametric.
-Fix the tests.
+Make name resolution be a method of Statement and Declaration.
+Implement type inference.
+Implement mode checking.
+Test type checking.

@@ -205,7 +205,7 @@ public final class TestParser {
         },
         new Matches() {
             public String name() { return "Type 2"; }
-            public String expected() { return "<(Ground Int8 false)>"; }
+            public String expected() { return "<(Ground Int8)>"; }
             public String userCode() throws CompilerError {
                 return parseType("Int8 2");
             }
@@ -219,7 +219,7 @@ public final class TestParser {
         },
         new Matches() {
             public String name() { return "Type 4"; }
-            public String expected() { return "(Arrow <(Ground Boolean false)>-><(Ground Boolean false)> false)"; }
+            public String expected() { return "(Arrow <(Ground Boolean)>-><(Ground Boolean)>)"; }
             public String userCode() throws CompilerError {
                 return parseType("(Boolean) -> Boolean");
             }
@@ -233,7 +233,7 @@ public final class TestParser {
         },
         new Matches() {
             public String name() { return "Type 6"; }
-            public String expected() { return "(Buffer <{4}> (Arrow <(Ground Boolean false)>-><(Ground Boolean false)> false))"; }
+            public String expected() { return "(Buffer <{4}> (Arrow <(Ground Boolean)>-><(Ground Boolean)>))"; }
             public String userCode() throws CompilerError {
                 return parseType("Buffer[4, (Boolean) -> Boolean]");
             }
@@ -254,21 +254,21 @@ public final class TestParser {
         },
         new Matches() {
             public String name() { return "Type 9"; }
-            public String expected() { return "(Buffer ? <(Ground Unit false)>)"; }
+            public String expected() { return "(Buffer ? <(Ground Unit)>)"; }
             public String userCode() throws CompilerError {
                 return parseType("Buffer[_, ()]");
             }
         },
         new Matches() {
             public String name() { return "Type 10"; }
-            public String expected() { return "(Buffer {NE a} <(Ground Unit false)>)"; }
+            public String expected() { return "(Buffer {NE a} <(Ground Unit)>)"; }
             public String userCode() throws CompilerError {
                 return parseType("Buffer[a, ()]");
             }
         },
         new Matches() {
             public String name() { return "Typed expression 1"; }
-            public String expected() { return "(AsType @1,1,1,2 (Var @1,1,1,2 {a}) : <(Ground Int8 false)>)"; }
+            public String expected() { return "(AsType @1,1,1,2 (Var @1,1,1,2 {a}) : <(Ground Int8)>)"; }
             public String userCode() throws CompilerError {
                 return parseExpr("a: Int8");
             }
@@ -450,7 +450,7 @@ public final class TestParser {
         },
         new Matches() {
             public String name() { return "Statement 26"; }
-            public String expected() { return "(Let @1,1,1,10 (Binding @1,5,1,10 {x (? false false)}(@1,9,1,10 {1})))"; }
+            public String expected() { return "(Let @1,1,1,10 (Binding @1,5,1,10 {@1,5,1,6 const x (?)}(@1,9,1,10 {1})))"; }
             public String userCode() throws CompilerError {
                 return parseStmt("let x = 1");
             }
@@ -464,28 +464,28 @@ public final class TestParser {
         },
         new Matches() {
             public String name() { return "Statement 28"; }
-            public String expected() { return "(Let @1,1,1,16 (Binding @1,5,1,16 {x (? false false)}(Tuple @1,9,1,16 (@1,9,1,10 {1})(@1,12,1,13 {2})(@1,15,1,16 {3}))))"; }
+            public String expected() { return "(Let @1,1,1,16 (Binding @1,5,1,16 {@1,5,1,6 const x (?)}(Tuple @1,9,1,16 (@1,9,1,10 {1})(@1,12,1,13 {2})(@1,15,1,16 {3}))))"; }
             public String userCode() throws CompilerError {
                 return parseStmt("let x = 1, 2, 3");
             }
         },
         new Matches() {
             public String name() { return "Statement 29"; }
-            public String expected() { return "(Let @1,1,1,19 (Binding @1,5,1,19 {a (? false false)}{b (? false false)}{c (? false false)}{d (? false false)}(@1,18,1,19 {1})))"; }
+            public String expected() { return "(Let @1,1,1,19 (Binding @1,5,1,19 {@1,5,1,6 const a (?)}{@1,8,1,9 const b (?)}{@1,11,1,12 const c (?)}{@1,14,1,15 const d (?)}(@1,18,1,19 {1})))"; }
             public String userCode() throws CompilerError {
                 return parseStmt("let a, b, c, d = 1");
             }
         },
         new Matches() {
             public String name() { return "Statement 30"; }
-            public String expected() { return "(Let @1,1,1,27 (Binding @1,5,1,27 {a (? false false)}{b (? false false)}{c <(Ground UInt64 false)>}(@1,26,1,27 {1})))"; }
+            public String expected() { return "(Let @1,1,1,27 (Binding @1,5,1,27 {@1,5,1,6 const a <(Ground UInt64)>}{@1,8,1,9 const b <(Ground UInt64)>}{@1,14,1,15 const c <(Ground UInt64)>}(@1,26,1,27 {1})))"; }
             public String userCode() throws CompilerError {
                 return parseStmt("let a, b: _, c: UInt64 = 1");
             }
         },
         new Matches() {
             public String name() { return "Statement 31"; }
-            public String expected() { return "(Let @1,1,1,23 (Binding @1,5,1,23 {a <(Ground Int32 false)>}{b <(Ground Int32 false)>}{c (? false false)}(@1,22,1,23 {1})))"; }
+            public String expected() { return "(Let @1,1,1,23 (Binding @1,5,1,23 {@1,5,1,6 const a <(Ground Int32)>}{@1,8,1,9 const b <(Ground Int32)>}{@1,18,1,19 const c (?)}(@1,22,1,23 {1})))"; }
             public String userCode() throws CompilerError {
                 return parseStmt("let a, b: Int32, c = 1");
             }
@@ -506,28 +506,28 @@ public final class TestParser {
         },
         new Matches() {
             public String name() { return "Statement 34"; }
-            public String expected() { return "(Let @1,1,1,14 (Binding @1,5,1,14 {a (? false true)}(@1,13,1,14 {1})))"; }
+            public String expected() { return "(Let @1,1,1,14 (Binding @1,5,1,14 {@1,9,1,10 var a (?)}(@1,13,1,14 {1})))"; }
             public String userCode() throws CompilerError {
                 return parseStmt("let var a = 1");
             }
         },
         new Matches() {
             public String name() { return "Statement 35"; }
-            public String expected() { return "(Let @1,1,1,17 (Binding @1,5,1,17 {a (? false true)}{b (? false false)}(@1,16,1,17 {1})))"; }
+            public String expected() { return "(Let @1,1,1,17 (Binding @1,5,1,17 {@1,9,1,10 var a (?)}{@1,12,1,13 const b (?)}(@1,16,1,17 {1})))"; }
             public String userCode() throws CompilerError {
                 return parseStmt("let var a, b = 1");
             }
         },
         new Matches() {
             public String name() { return "Statement 36"; }
-            public String expected() { return "(Let @1,1,1,17 (Binding @1,5,1,17 {a (? false false)}{b (? false true)}(@1,16,1,17 {1})))"; }
+            public String expected() { return "(Let @1,1,1,17 (Binding @1,5,1,17 {@1,5,1,6 const a (?)}{@1,12,1,13 var b (?)}(@1,16,1,17 {1})))"; }
             public String userCode() throws CompilerError {
                 return parseStmt("let a, var b = 1");
             }
         },
         new Matches() {
             public String name() { return "Statement 37"; }
-            public String expected() { return "(Let @1,1,1,21 (Binding @1,5,1,21 {a <(Ground Int16 true)>}(@1,20,1,21 {1})))"; }
+            public String expected() { return "(Let @1,1,1,21 (Binding @1,5,1,21 {@1,9,1,10 var a <(Ground Int16)>}(@1,20,1,21 {1})))"; }
             public String userCode() throws CompilerError {
                 return parseStmt("let var a: Int16 = 1");
             }

@@ -35,7 +35,7 @@ public final class Types {
             this.tag = tag;
         }
         
-        public void resolveNames(NamingContext context) throws CompilerError { }
+        public abstract Nat<ResolvedName, Poly> resolveNames(NamingContext context) throws CompilerError;
     }
     
     public static final class NatExternal<Name, Phase> extends Nat<Name, Phase> {
@@ -48,11 +48,11 @@ public final class Types {
             this.loc = loc;
             this.name = name;
         }
-        /*
-        public void resolveNames(NamingContext context) throws CompilerError {
-            name = context.resolve(loc, source);
+        
+        public Nat<ResolvedName, Poly> resolveNames(NamingContext context) throws CompilerError {
+            return new NatExternal<ResolvedName, Poly>(this.loc, context.resolve(loc, name.toString()));
         }
-        */
+        
         public String toString() {
             return "{NE " + name.toString() + "}";
         }
@@ -65,6 +65,10 @@ public final class Types {
         public NatKnown(Nat<ResolvedName, Mono> nat) {
             super(NatTag.NatKnown);
             this.nat = nat;
+        }
+        
+        public Nat<ResolvedName, Poly> resolveNames(NamingContext context) throws CompilerError {
+            return new NatKnown<ResolvedName, Poly>(nat);
         }
         
         public String toString() {
@@ -81,6 +85,10 @@ public final class Types {
             this.value = value;
         }
         
+        public Nat<ResolvedName, Poly> resolveNames(NamingContext context) throws CompilerError {
+            throw CompilerError.ice(new Location(1,1,1,1), "resolveNames() was called on a NatLiteral.");
+        }
+        
         public String toString() {
             return "{" + value + "}";
         }
@@ -95,6 +103,10 @@ public final class Types {
             this.index = index;
         }
         
+        public Nat<ResolvedName, Poly> resolveNames(NamingContext context) throws CompilerError {
+            return this;
+        }
+        
         public String toString() {
             return "{NV " + index + "}";
         }
@@ -104,6 +116,10 @@ public final class Types {
         
         public NatUnknown() {
             super(NatTag.NatUnknown);
+        }
+        
+        public Nat<ResolvedName, Poly> resolveNames(NamingContext context) throws CompilerError {
+            return new NatVar(context.natLevel++);
         }
         
         public String toString() {
@@ -143,7 +159,7 @@ public final class Types {
             this.tag = tag;
         }
         
-        public abstract void resolveNames(NamingContext context) throws CompilerError;
+        public abstract Type<ResolvedName, Poly> resolveNames(NamingContext context) throws CompilerError;
     }
     
     public static final class Arrow<Name, Phase> extends Type<Name, Phase> {
@@ -157,9 +173,8 @@ public final class Types {
             this.codomain = codomain;
         }
         
-        public void resolveNames(NamingContext context) throws CompilerError {
-            domain.resolveNames(context);
-            codomain.resolveNames(context);
+        public Type<ResolvedName, Poly> resolveNames(NamingContext context) throws CompilerError {
+            return new Arrow<ResolvedName, Poly>(domain.resolveNames(context), codomain.resolveNames(context));
         }
         
         public String toString() {
@@ -180,9 +195,8 @@ public final class Types {
             this.contained = contained;
         }
         
-        public void resolveNames(NamingContext context) throws CompilerError {
-            size.resolveNames(context);
-            contained.resolveNames(context);
+        public Type<ResolvedName, Poly> resolveNames(NamingContext context) throws CompilerError {
+            return new Buffer<ResolvedName, Poly>(size.resolveNames(context), containedMode, contained.resolveNames(context));
         }
         
         public String toString() {
@@ -199,7 +213,9 @@ public final class Types {
             this.groundTag = groundTag;
         }
         
-        public void resolveNames(NamingContext context) { }
+        public Type<ResolvedName, Poly> resolveNames(NamingContext context) throws CompilerError {
+            throw CompilerError.ice(new Location(1,1), "resolveNames() was called on a ground type.");
+        }
         
         public String toString() {
             return "(Ground " + groundTag.toString() + ")";
@@ -215,8 +231,8 @@ public final class Types {
             this.type = type;
         }
         
-        public void resolveNames(NamingContext context) throws CompilerError {
-            type.resolveNames(context);
+        public Type<ResolvedName, Poly> resolveNames(NamingContext context) throws CompilerError {
+            return new Known<ResolvedName, Poly>(type);
         }
         
         public String toString() {
@@ -235,8 +251,8 @@ public final class Types {
             this.pointee = pointee;
         }
         
-        public void resolveNames(NamingContext context) throws CompilerError {
-            pointee.resolveNames(context);
+        public Type<ResolvedName, Poly> resolveNames(NamingContext context) throws CompilerError {
+            return new Ptr<ResolvedName, Poly>(pointeeMode, pointee.resolveNames(context));
         }
         
         public String toString() {
@@ -253,10 +269,12 @@ public final class Types {
             this.members = members;
         }
         
-        public void resolveNames(NamingContext context) throws CompilerError {
+        public Type<ResolvedName, Poly> resolveNames(NamingContext context) throws CompilerError {
+            ArrayList<Type<ResolvedName, Poly>> newMembers = new ArrayList<Type<ResolvedName, Poly>>();
             for (Type<Name, Phase> m: members) {
-                m.resolveNames(context);
+                newMembers.add(m.resolveNames(context));
             }
+            return new Tuple<ResolvedName, Poly>(newMembers);
         }
         
         public String toString() {
@@ -277,7 +295,9 @@ public final class Types {
             this.id = id;
         }
         
-        public void resolveNames(NamingContext context) { }
+        public Type<ResolvedName, Poly> resolveNames(NamingContext context) throws CompilerError {
+            return this;
+        }
         
         public String toString() {
             return "(TypeVar " + id + ")";
@@ -292,7 +312,9 @@ public final class Types {
             super(Tag.Unknown);
         }
         
-        public void resolveNames(NamingContext context) { }
+        public Type<ResolvedName, Poly> resolveNames(NamingContext context) throws CompilerError {
+            return new TypeVar(context.typeLevel++);
+        }
         
         public String toString() {
             return "(?)";

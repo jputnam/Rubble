@@ -18,7 +18,7 @@ import rubble.data.Types.*;
  * included with this source.
  */
 public final class TypeSystem {
-    
+    /*
     private int nv;
     private int tv;
     
@@ -143,5 +143,5 @@ public final class TypeSystem {
     
     private TypeVar newTypeVar() {
         return new TypeVar(tv++, true, false);
-    }
+    } */
 }
