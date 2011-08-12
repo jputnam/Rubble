@@ -184,11 +184,11 @@ public final class TestChecker {
                 return mainExists("def main(a) Int32 {}");
             }
         },
-        new Crashes() {
+        new Matches() {
             public String name() { return "Main exists 6"; }
-            public String expected() { return "@1,1,1,29 main() must take one immutable () argument."; }
+            public String expected() { return "ok"; }
             public String userCode() throws CompilerError {
-                return mainExists("def main(a: var ()) Int32 {}");
+                return mainExists("def main(a: ()) Int32 {}; def main(a: ()) Int32 {}");
             }
         },
         new Matches() {
@@ -196,13 +196,6 @@ public final class TestChecker {
             public String expected() { return "ok"; }
             public String userCode() throws CompilerError {
                 return mainExists("def main(a: ()) Int32 {}");
-            }
-        },
-        new Crashes() {
-            public String name() { return "Main exists 8"; }
-            public String expected() { return "@1,27,1,55 main() must take one immutable () argument."; }
-            public String userCode() throws CompilerError {
-                return mainExists("def main(a: ()) Int32 {}; def main(a: var ()) Int32 {}");
             }
         }
     };

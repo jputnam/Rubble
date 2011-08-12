@@ -210,9 +210,9 @@ public final class TestParser {
                 return parseType("Int8 2");
             }
         },
-        new Matches() {
+        new Crashes() {
             public String name() { return "Type 3"; }
-            public String expected() { return "<(Ground Int8 true)>"; }
+            public String expected() { return "@1,1,1,4 The parser expected a type but found var."; }
             public String userCode() throws CompilerError {
                 return parseType("var Int8");
             }
@@ -224,9 +224,9 @@ public final class TestParser {
                 return parseType("(Boolean) -> Boolean");
             }
         },
-        new Matches() {
+        new Crashes() {
             public String name() { return "Type 5"; }
-            public String expected() { return "(Arrow <(Ground Boolean true)>-><(Ground Boolean false)> false)"; }
+            public String expected() { return "@1,2,1,5 The parser expected a type but found var."; }
             public String userCode() throws CompilerError {
                 return parseType("(var Boolean) -> Boolean");
             }
@@ -490,16 +490,16 @@ public final class TestParser {
                 return parseStmt("let a, b: Int32, c = 1");
             }
         },
-        new Matches() {
+        new Crashes() {
             public String name() { return "Statement 32"; }
-            public String expected() { return "(Let @1,1,1,17 (Binding @1,5,1,17 {a (? false true)}(@1,16,1,17 {1})))"; }
+            public String expected() { return "@1,8,1,11 The parser expected a type but found var."; }
             public String userCode() throws CompilerError {
                 return parseStmt("let a: var _ = 1");
             }
         },
-        new Matches() {
+        new Crashes() {
             public String name() { return "Statement 33"; }
-            public String expected() { return "(Let @1,1,1,21 (Binding @1,5,1,21 {a <(Ground Int16 true)>}(@1,20,1,21 {1})))"; }
+            public String expected() { return "@1,8,1,11 The parser expected a type but found var."; }
             public String userCode() throws CompilerError {
                 return parseStmt("let a: var Int16 = 1");
             }
@@ -534,7 +534,7 @@ public final class TestParser {
         },
         new Crashes() {
             public String name() { return "Statement 38"; }
-            public String expected() { return "@1,9,1,10 A variable may not be both marked as mutable and declared as having a mutable type."; }
+            public String expected() { return "@1,12,1,15 The parser expected a type but found var."; }
             public String userCode() throws CompilerError {
                 return parseStmt("let var a: var Int16 = 1");
             }
@@ -555,37 +555,37 @@ public final class TestParser {
         },
         new Matches() {
             public String name() { return "Declaration 1"; }
-            public String expected() { return "(GlobalLet @1,1,1,20 (Binding @1,5,1,20 {x <(Ground Int8 true)>}(Var @1,19,1,20 {q})))"; }
+            public String expected() { return "(GlobalLet @1,1,1,20 (Binding @1,5,1,20 {@1,9,1,10 var x <(Ground Int8)>}(Var @1,19,1,20 {q})))"; }
             public String userCode() throws CompilerError {
                 return parseDecl("let var x: Int8 = q");
             }
         },
         new Matches() {
             public String name() { return "Declaration 2"; }
-            public String expected() { return "(Def @1,1,1,17 a {# Implicit argument <(Ground Unit false)>} : <(Ground UInt8 false)>{})"; }
+            public String expected() { return "(Def @1,1,1,17 a {@1,6,1,8 const # Implicit argument <(Ground Unit)>} : <(Ground UInt8)>{})"; }
             public String userCode() throws CompilerError {
                 return parseDecl("def a() UInt8 do");
             }
         },
         new Matches() {
             public String name() { return "Declaration 3"; }
-            public String expected() { return "(Def @1,1,1,23 a {b <(Ground Int8 false)>} : <(Ground Int8 false)>{})"; }
+            public String expected() { return "(Def @1,1,1,23 a {@1,7,1,8 const b <(Ground Int8)>} : <(Ground Int8)>{})"; }
             public String userCode() throws CompilerError {
                 return parseDecl("def a(b: Int8) Int8 do");
             }
         },
         new Matches() {
             public String name() { return "Declaration 4"; }
-            public String expected() { return "(Def @1,1,1,33 a {b <(Ground Int8 false)>}{c (? false true)}{d (? false false)} : <(Ground Int8 false)>{})"; }
+            public String expected() { return "(Def @1,1,1,33 a {@1,7,1,8 const b <(Ground Int8)>}{@1,20,1,21 var c (?)}{@1,23,1,24 const d (?)} : <(Ground Int8)>{})"; }
             public String userCode() throws CompilerError {
                 return parseDecl("def a(b: Int8, var c, d) Int8 do");
             }
         },
         new Matches() {
             public String name() { return "Declaration 5"; }
-            public String expected() { return "(Def @1,1,1,39 a {# Implicit argument <(Ground Unit false)>} : <(Ground Int8 true)>{(Return @1,21,1,27 (@1,28,1,29 {1}))(Return @1,31,1,37 (@1,38,1,39 {2}))})"; }
+            public String expected() { return "(Def @1,1,1,35 a {@1,6,1,8 const # Implicit argument <(Ground Unit)>} : <(Ground Int8)>{(Return @1,17,1,23 (@1,24,1,25 {1}))(Return @1,27,1,33 (@1,34,1,35 {2}))})"; }
             public String userCode() throws CompilerError {
-                return parseDecl("def a() var Int8 do return 1; return 2");
+                return parseDecl("def a() Int8 do return 1; return 2");
             }
         },
         new Crashes() {
@@ -597,7 +597,7 @@ public final class TestParser {
         },
         new Matches() {
             public String name() { return "Declaration 7"; }
-            public String expected() { return "(GlobalLet @1,1,1,20 (Binding @1,8,1,13 {a (? false false)}(@1,12,1,13 {1}))(Binding @1,15,1,20 {b (? false false)}(@1,19,1,20 {2})))"; }
+            public String expected() { return "(GlobalLet @1,1,1,20 (Binding @1,8,1,13 {@1,8,1,9 const a (?)}(@1,12,1,13 {1}))(Binding @1,15,1,20 {@1,15,1,16 const b (?)}(@1,19,1,20 {2})))"; }
             public String userCode() throws CompilerError {
                 return parseDecl("let do a = 1; b = 2");
             }
