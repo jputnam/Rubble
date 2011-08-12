@@ -71,7 +71,7 @@ public final class NamingContext {
         locals.nestScope();
     }
     
-    public void observeArgument(Location loc, String name, Mode mode) throws CompilerError {
+    public void observeArgument(Location loc, Mode mode, String name) throws CompilerError {
         if (arguments.containsKey(name)) {
             throw CompilerError.check(loc, "The name " + name + " is already defined in this scope.");
         }
@@ -79,14 +79,14 @@ public final class NamingContext {
         argumentLevel++;
     }
     
-    public void observeGlobal(Location loc, String name, Mode mode) throws CompilerError {
+    public void observeGlobal(Location loc, Mode mode, String name) throws CompilerError {
         if (globals.contains(name)) {
             throw CompilerError.check(loc, "The global name " + name + " has already been defined.");
         }
         globals.put(name, new Global(name, mode));
     }
     
-    public void observeLocal(Location loc, String name, Mode mode) throws CompilerError {
+    public void observeLocal(Location loc, Mode mode, String name) throws CompilerError {
         locals.observe(loc, name, mode);
     }
     

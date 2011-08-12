@@ -6,7 +6,11 @@ import rubble.data.Names.*;
 
 /**
  * A container class for types, type-level numbers, and witnesses indicating
- * the phase of compilation the types are being used at.
+ * the phase of compilation the types are being used at.  <Name> is
+ * instantiated with String when the AST is parsed and ResolvedName after
+ * name resolution.  <Phase> is instantiated with Parsed after parsing,
+ * Poly after initialization, and Mono after the types are resolved to
+ * monomorphic types.
  * 
  * Copyright (c) 2011 Jared Putnam
  * Released under the terms of the 2-clause BSD license, which should be
@@ -131,34 +135,26 @@ public final class Types {
     }
     
     
-    public static abstract class Type<Phase> {
+    public static abstract class Type<Name, Phase> {
         
-        public final boolean isMutable;
         public final Tag tag;
         
-        public Type(Tag tag, boolean isMutable) {
+        public Type(Tag tag) {
             this.tag = tag;
-            this.isMutable = isMutable;
         }
-        
-        public abstract Type<Phase> mutable();
         
         public abstract void resolveNames(NamingContext context) throws CompilerError;
     }
     
-    public static final class Arrow<Phase> extends Type<Phase> {
+    public static final class Arrow<Name, Phase> extends Type<Name, Phase> {
         
-        public final Type<Phase> domain;
-        public final Type<Phase> codomain;
+        public final Type<Name, Phase> domain;
+        public final Type<Name, Phase> codomain;
         
-        public Arrow(Type<Phase> domain, Type<Phase> codomain, boolean isMutable) {
-            super(Tag.Arrow, isMutable);
+        public Arrow(Type<Name, Phase> domain, Type<Name, Phase> codomain) {
+            super(Tag.Arrow);
             this.domain = domain;
             this.codomain = codomain;
-        }
-        
-        public Type<Phase> mutable() {
-            return new Arrow<Phase>(domain, codomain, true);
         }
         
         public void resolveNames(NamingContext context) throws CompilerError {
@@ -167,23 +163,21 @@ public final class Types {
         }
         
         public String toString() {
-            return "(Arrow " + domain.toString() + "->" + codomain.toString() + " " + isMutable + ")";
+            return "(Arrow " + domain.toString() + "->" + codomain.toString() + ")";
         }
     }
     
-    public static final class Buffer<Phase> extends Type<Phase> {
+    public static final class Buffer<Name, Phase> extends Type<Name, Phase> {
         
-        public final Type<Phase> contained;
-        public final Nat<Phase> size;
+        public final Mode containedMode;
+        public final Type<Name, Phase> contained;
+        public final Nat<Name, Phase> size;
         
-        public Buffer(Nat<Phase> size, Type<Phase> contained, boolean isMutable) {
-            super(Tag.Buffer, isMutable);
-            this.contained = contained;
+        public Buffer(Nat<Name, Phase> size, Mode containedMode, Type<Name, Phase> contained) {
+            super(Tag.Buffer);
             this.size = size;
-        }
-        
-        public Type<Phase> mutable() {
-            return new Buffer<Phase>(size, contained, true);
+            this.containedMode = containedMode;
+            this.contained = contained;
         }
         
         public void resolveNames(NamingContext context) throws CompilerError {
@@ -196,37 +190,29 @@ public final class Types {
         }
     }
     
-    public static final class Ground extends Type<Mono> {
+    public static final class Ground extends Type<ResolvedName, Mono> {
         
         public final GroundTag groundTag;
         
-        public Ground(GroundTag groundTag, boolean isMutable) {
-            super(Tag.Ground, isMutable);
+        public Ground(GroundTag groundTag) {
+            super(Tag.Ground);
             this.groundTag = groundTag;
-        }
-        
-        public Type<Mono> mutable() {
-            return new Ground(groundTag, true);
         }
         
         public void resolveNames(NamingContext context) { }
         
         public String toString() {
-            return "(Ground " + groundTag.toString() + " " + isMutable + ")";
+            return "(Ground " + groundTag.toString() + ")";
         }
     }
     
-    public static final class Known<Phase extends Parsed> extends Type<Phase> {
+    public static final class Known<Name, Phase extends Parsed> extends Type<Name, Phase> {
         
-        public final Type<Mono> type;
+        public final Type<ResolvedName, Mono> type;
         
-        public Known(Type<Mono> type) {
-            super(Tag.Known, type.isMutable);
+        public Known(Type<ResolvedName, Mono> type) {
+            super(Tag.Known);
             this.type = type;
-        }
-        
-        public Type<Phase> mutable() {
-            return new Known<Phase>(type.mutable());
         }
         
         public void resolveNames(NamingContext context) throws CompilerError {
@@ -238,17 +224,15 @@ public final class Types {
         }
     }
     
-    public static final class Ptr<Phase> extends Type<Phase> {
+    public static final class Ptr<Name, Phase> extends Type<Name, Phase> {
         
-        public final Type<Phase> pointee;
+        public final Mode pointeeMode;
+        public final Type<Name, Phase> pointee;
         
-        public Ptr(Type<Phase> pointee, boolean isMutable) {
-            super(Tag.Ptr, isMutable);
+        public Ptr(Mode pointeeMode, Type<Name, Phase> pointee) {
+            super(Tag.Ptr);
+            this.pointeeMode = pointeeMode;
             this.pointee = pointee;
-        }
-        
-        public Type<Phase> mutable() {
-            return new Ptr<Phase>(pointee, true);
         }
         
         public void resolveNames(NamingContext context) throws CompilerError {
@@ -256,82 +240,62 @@ public final class Types {
         }
         
         public String toString() {
-            return "(Ptr " + pointee.toString() + " " + isMutable + ")";
+            return "(Ptr " + pointee.toString() + ")";
         }
     }
     
-    public static final class Tuple<Phase> extends Type<Phase> {
+    public static final class Tuple<Name, Phase> extends Type<Name, Phase> {
         
-        public final ArrayList<Type<Phase>> members;
+        public final ArrayList<Type<Name, Phase>> members;
         
-        public Tuple(ArrayList<Type<Phase>> members, boolean isMutable) {
-            super(Tag.Tuple, isMutable);
+        public Tuple(ArrayList<Type<Name, Phase>> members) {
+            super(Tag.Tuple);
             this.members = members;
         }
         
-        public Type<Phase> mutable() {
-            return new Tuple<Phase>(members, true);
-        }
-        
         public void resolveNames(NamingContext context) throws CompilerError {
-            for (Type<Phase> m: members) {
+            for (Type<Name, Phase> m: members) {
                 m.resolveNames(context);
             }
         }
         
         public String toString() {
             String ms = "";
-            for (Type<Phase> t: members) {
+            for (Type<Name, Phase> t: members) {
                 ms += t.toString();
             }
-            return "(Tuple " + ms + " " + isMutable + ")";
+            return "(Tuple " + ms + ")";
         }
     }
     
-    public static final class TypeVar extends Type<Poly> {
+    public static final class TypeVar extends Type<ResolvedName, Poly> {
         
         public int id;
-        public final boolean isNeutral;
         
-        public TypeVar(int id, boolean isNeutral, boolean isMutable) {
-            super(Tag.TypeVar, isMutable);
+        public TypeVar(int id) {
+            super(Tag.TypeVar);
             this.id = id;
-            this.isNeutral = isNeutral;
         }
         
-        public Type<Poly> mutable() {
-            return new TypeVar(id, isNeutral, true);
-        }
-
         public void resolveNames(NamingContext context) { }
         
         public String toString() {
-            return "(TypeVar " + id + " " + isMutable + ")";
+            return "(TypeVar " + id + ")";
         }
     }
     
-    public static Unknown UNKNOWN_IMMUTABLE = new Unknown(false, false);
-    public static Unknown UNKNOWN_NEUTRAL = new Unknown(true, false);
+    public static Unknown UNKNOWN = new Unknown();
     
-    public static final class Unknown extends Type<Parsed> {
+    public static final class Unknown extends Type<String, Parsed> {
         
-        // If the type is neutral, this overrides mutability; the type
-        // variable can be unified with either a mutable type or an immutable one.
-        public final boolean isNeutral;
-        
-        public Unknown(boolean isNeutral, boolean isMutable) {
-            super(Tag.Unknown, isMutable);
-            this.isNeutral = isNeutral;
-        }
-        
-        public Type<Parsed> mutable() {
-            return new Unknown(isNeutral, true);
+        public Unknown() {
+            super(Tag.Unknown);
         }
         
         public void resolveNames(NamingContext context) { }
         
         public String toString() {
-            return "(? " + isNeutral + " " + isMutable + ")";
+            return "(?)";
         }
     }
 }
