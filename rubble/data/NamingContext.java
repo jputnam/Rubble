@@ -52,13 +52,13 @@ public final class NamingContext {
         globals = new HashSet<String>();
         arguments = new Hashtable<String, Integer>();
         argumentLevel = 0;
-        locals = Locals.NIL;
+        locals = Locals.NIL.nestScope();
     }
     
     public void discardNonGlobals() {
         arguments = new Hashtable<String, Integer>();
         argumentLevel = 0;
-        locals = Locals.NIL;
+        locals = Locals.NIL.nestScope();
     }
     
     public void newScope() {

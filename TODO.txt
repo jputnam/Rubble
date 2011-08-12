@@ -1,0 +1,4 @@
+Split modes out of types again to type checking sane.
+Maybe add the empty mode?
+Make name resolution be a type parameter again.
+Make name resolution be a method of AST and Type by making it parametric.

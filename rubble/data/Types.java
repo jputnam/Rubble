@@ -104,7 +104,22 @@ public final class Types {
     }
     
     
-    public static enum Tag { Arrow, Buffer, Ground, Known, Ptr, Tuple, TypeVar, Unknown }
+    public static enum Tag {
+        Arrow("a function"),
+        Buffer("a buffer"),
+        Ground("a ground type"),
+        Known("a known type"),
+        Ptr("a pointer"),
+        Tuple("a tuple"),
+        TypeVar("a type variable"),
+        Unknown("an unknown type");
+        
+        public final String pretty;
+        
+        Tag(String pretty) {
+            this.pretty = pretty;
+        }
+    }
 
     public static enum GroundTag {
         Boolean, Int8, Int16, Int32, Int64,
@@ -272,14 +287,16 @@ public final class Types {
     public static final class TypeVar extends Type<Poly> {
         
         public int id;
+        public final boolean isNeutral;
         
-        public TypeVar(int id, boolean isMutable) {
+        public TypeVar(int id, boolean isNeutral, boolean isMutable) {
             super(Tag.TypeVar, isMutable);
             this.id = id;
+            this.isNeutral = isNeutral;
         }
         
         public Type<Poly> mutable() {
-            return new TypeVar(id, true);
+            return new TypeVar(id, isNeutral, true);
         }
 
         public void resolveNames(NamingContext context) { }

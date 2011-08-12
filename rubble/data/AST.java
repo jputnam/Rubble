@@ -91,6 +91,7 @@ public final class AST {
         }
         
         public void resolveNames(NamingContext context) throws CompilerError {
+            context.observeGlobal(loc, name);
             for (Reference<Phase> r: arguments) {
                 r.resolveNames(context);
                 context.observeArgument(loc, r.name);
