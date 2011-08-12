@@ -15,7 +15,7 @@ import rubble.data.Types;
  * Released under the terms of the 2-clause BSD license, which should be
  * included with this source.
  */
-public final class Binding extends Parser<AST.Binding<Types.Parsed>> {
+public final class Binding extends Parser<AST.Binding<String, Types.Parsed>> {
     
     public Binding(ParseContext context) {
         super(context, "a variable binding", ";");
@@ -25,23 +25,23 @@ public final class Binding extends Parser<AST.Binding<Types.Parsed>> {
         super(loc, tokens, "a variable binding", ";");
     }
     
-    protected LeftDenotation<AST.Binding<Types.Parsed>> leftDenotation(Token token) throws CompilerError {
+    protected LeftDenotation<AST.Binding<String, Types.Parsed>> leftDenotation(Token token) throws CompilerError {
         return null;
     }
     
-    protected AST.Binding<Types.Parsed> nullDenotation(Token token) throws CompilerError {
+    protected AST.Binding<String, Types.Parsed> nullDenotation(Token token) throws CompilerError {
         switch(token.tag) {
         case Identifier:
         case Reserved:
             context.index -= 1;
-            ArrayList<AST.Reference<Types.Parsed>> names = Reference.parse(context);
+            ArrayList<AST.Reference<String, Types.Parsed>> names = Reference.parse(context);
             if (names.size() == 0) {
                 throw ParseContext.errorUnexpected(token.loc, "a variable binding", "did not find one");
             }
             context.requireToken("=");
-            AST.Expression<Types.Parsed> value = new Expression(context).parseOpenTuple();
+            AST.Expression<String, Types.Parsed> value = new Expression(context).parseOpenTuple();
             Location loc = new Location(token.loc, value.loc);
-            return new AST.Binding<Types.Parsed>(loc, names, value);
+            return new AST.Binding<String, Types.Parsed>(loc, names, value);
         default: throw errorUnexpectedToken(token.loc, token.source);
         }
     }

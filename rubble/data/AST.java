@@ -16,11 +16,13 @@ public final class AST {
     
     public static final class Reference<Name, Phase> {
         
+        public final Location loc;
         public final Mode mode;
         public final String name;
         public final Types.Type<Name, Phase> type;
         
-        public Reference(Mode mode, String name, Types.Type<Name, Phase> type) {
+        public Reference(Location loc, Mode mode, String name, Types.Type<Name, Phase> type) {
+            this.loc = loc;
             this.mode = mode;
             this.name = name;
             this.type = type;
@@ -31,7 +33,7 @@ public final class AST {
         }
         
         public String toString() {
-            return "{" + mode + " " + name.toString() + " " + type.toString() + "}";
+            return "{" + loc.toString() + " " + mode + " " + name.toString() + " " + type.toString() + "}";
         }
     }
     

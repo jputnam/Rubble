@@ -15,7 +15,7 @@ import rubble.data.Types;
  * Released under the terms of the 2-clause BSD license, which should be
  * included with this source.
  */
-public final class Statement extends Parser<AST.Statement<Types.Parsed>> {
+public final class Statement extends Parser<AST.Statement<String, Types.Parsed>> {
     
     private static final class StringStack {
         
@@ -58,37 +58,37 @@ public final class Statement extends Parser<AST.Statement<Types.Parsed>> {
         this.scopeStack = scopeStack;
     }
     
-    private static AST.LValue<Types.Parsed> certifyLValue(AST.Expression<Types.Parsed> ast) throws CompilerError {
+    private static AST.LValue<String, Types.Parsed> certifyLValue(AST.Expression<String, Types.Parsed> ast) throws CompilerError {
         switch (ast.tag) {
         case Index:
-            AST.Index<Types.Parsed> ix = (AST.Index<Types.Parsed>)ast;
-            return new AST.IndexL<Types.Parsed>(ast.loc, Types.UNKNOWN_NEUTRAL, certifyLValue(ix.base), ix.offset);
+            AST.Index<String, Types.Parsed> ix = (AST.Index<String, Types.Parsed>)ast;
+            return new AST.IndexL<String, Types.Parsed>(ast.loc, Types.UNKNOWN, certifyLValue(ix.base), ix.offset);
         case Tuple:
-            AST.Tuple<Types.Parsed> tuple = (AST.Tuple<Types.Parsed>)ast;
-            ArrayList<AST.LValue<Types.Parsed>> ls = new ArrayList<AST.LValue<Types.Parsed>>();
-            for (AST.Expression<Types.Parsed> e: tuple.es){
+            AST.Tuple<String, Types.Parsed> tuple = (AST.Tuple<String, Types.Parsed>)ast;
+            ArrayList<AST.LValue<String, Types.Parsed>> ls = new ArrayList<AST.LValue<String, Types.Parsed>>();
+            for (AST.Expression<String, Types.Parsed> e: tuple.es){
                 ls.add(certifyLValue(e));
             }
-            return new AST.TupleL<Types.Parsed>(ast.loc, Types.UNKNOWN_NEUTRAL, ls);
+            return new AST.TupleL<String, Types.Parsed>(ast.loc, Types.UNKNOWN, ls);
         case ValueAt:
-            return new AST.Indirect<Types.Parsed>(ast.loc, Types.UNKNOWN_NEUTRAL, ((AST.ValueAt<Types.Parsed>)ast).value);
+            return new AST.Indirect<String, Types.Parsed>(ast.loc, Types.UNKNOWN, ((AST.ValueAt<String, Types.Parsed>)ast).value);
         case Variable:
-            return new AST.Direct<Types.Parsed>(ast.loc, Types.UNKNOWN_NEUTRAL, ((AST.Variable<Types.Parsed>)ast).source);
+            return new AST.Direct<String, Types.Parsed>(ast.loc, Types.UNKNOWN, ((AST.Variable<String, Types.Parsed>)ast).source);
         default:
             throw ParseContext.errorUnexpected(ast.loc, "an lvalue", "found another kind of expression");
         }
     }
     
-    protected LeftDenotation<rubble.data.AST.Statement<Types.Parsed>> leftDenotation(Token token) throws CompilerError {
+    protected LeftDenotation<rubble.data.AST.Statement<String, Types.Parsed>> leftDenotation(Token token) throws CompilerError {
         return null;
     }
 
-    protected AST.Statement<Types.Parsed> nullDenotation(Token token) throws CompilerError {
+    protected AST.Statement<String, Types.Parsed> nullDenotation(Token token) throws CompilerError {
         Token lookahead;
         switch(token.tag) {
         case Block:
             if (token.source.equals("{") || token.source.equals(Token.IMPLICIT_BRACE)) {
-                return new AST.Nested<Types.Parsed>(token.loc, ((new Statement(token.loc, token.subtokens, scopeStack)).parseListFull("}")));
+                return new AST.Nested<String, Types.Parsed>(token.loc, ((new Statement(token.loc, token.subtokens, scopeStack)).parseListFull("}")));
             } else if (token.source.equals("(")) {
                 return parseCallOrAssignment(token);
             }
@@ -99,7 +99,7 @@ public final class Statement extends Parser<AST.Statement<Types.Parsed>> {
                 throw errorUnexpectedToken(token.loc, "an incomplete statement");
             } else if (lookahead.source.equals("forever")) {
                 context.index++;
-                return new AST.Forever<Types.Parsed>(token.loc, token.source, ((new Statement(context.inBraces(), new StringStack(token.source, scopeStack))).parseListFull("}")));
+                return new AST.Forever<String, Types.Parsed>(token.loc, token.source, ((new Statement(context.inBraces(), new StringStack(token.source, scopeStack))).parseListFull("}")));
             }
             return parseCallOrAssignment(token);
         case Reserved:
@@ -109,33 +109,33 @@ public final class Statement extends Parser<AST.Statement<Types.Parsed>> {
                 }
                 lookahead = context.lookahead();
                 if (lookahead == null || lookahead.tag == Token.Tag.Semicolon) {
-                    return new AST.Break<Types.Parsed>(token.loc, 0);
+                    return new AST.Break<String, Types.Parsed>(token.loc, 0);
                 } else if (lookahead.tag == Token.Tag.Identifier) {
                     int target = scopeStack.find(lookahead.source);
                     if (target >= scopeStack.size) {
                         throw CompilerError.parse(token.loc, "The break target was not found.");
                     }
                     context.index++;
-                    return new AST.Break<Types.Parsed>(token.loc, target);
+                    return new AST.Break<String, Types.Parsed>(token.loc, target);
                 }
                 else throw ParseContext.errorUnexpected(token.loc, "the end of the statement or a label", "found " + lookahead.source);
             } else if (token.source.equals("if")) {
-                AST.Expression<Types.Parsed> cond = (new Expression(context)).parse(0);
+                AST.Expression<String, Types.Parsed> cond = (new Expression(context)).parse(0);
                 context.requireToken("then");
-                ArrayList<AST.Statement<Types.Parsed>> trueBranch = (new Statement(context.inBraces(), scopeStack)).parseListFull("}");
-                ArrayList<AST.Statement<Types.Parsed>> falseBranch = new ArrayList<AST.Statement<Types.Parsed>>();
+                ArrayList<AST.Statement<String, Types.Parsed>> trueBranch = (new Statement(context.inBraces(), scopeStack)).parseListFull("}");
+                ArrayList<AST.Statement<String, Types.Parsed>> falseBranch = new ArrayList<AST.Statement<String, Types.Parsed>>();
                 lookahead = context.lookahead();
                 if (lookahead != null && lookahead.source.equals("else")) {
                     context.index++;
                     falseBranch = (new Statement(context.inBraces(), scopeStack)).parseListFull("}");
                 }
-                return new AST.IfS<Types.Parsed>(token.loc, cond, trueBranch, falseBranch);
+                return new AST.IfS<String, Types.Parsed>(token.loc, cond, trueBranch, falseBranch);
             } else if (token.source.equals("forever")) {
-                return new AST.Forever<Types.Parsed>(token.loc, "", (new Statement(context.inBraces(), new StringStack("", scopeStack)).parseListFull("}")));
+                return new AST.Forever<String, Types.Parsed>(token.loc, "", (new Statement(context.inBraces(), new StringStack("", scopeStack)).parseListFull("}")));
             } else if (token.source.equals("let")) {
                 return parseLet(token.loc);
             } else if (token.source.equals("return")) {
-                return new AST.Return<Types.Parsed>(token.loc, (new Expression(context).parseOpenTuple()));
+                return new AST.Return<String, Types.Parsed>(token.loc, (new Expression(context).parseOpenTuple()));
             } else if (token.source.equals("valueAt")) {
                 return parseCallOrAssignment(token);
             }
@@ -145,30 +145,30 @@ public final class Statement extends Parser<AST.Statement<Types.Parsed>> {
         }
     }
     
-    private AST.Statement<Types.Parsed> parseCallOrAssignment(Token token) throws CompilerError {
+    private AST.Statement<String, Types.Parsed> parseCallOrAssignment(Token token) throws CompilerError {
         context.index -= 1;
-        AST.Expression<Types.Parsed> ast = (new Expression(context)).parseOpenTuple();
+        AST.Expression<String, Types.Parsed> ast = (new Expression(context)).parseOpenTuple();
         Token lookahead = context.lookahead();
         if (lookahead == null || lookahead.tag == Token.Tag.Semicolon) {
             if (ast.tag == AST.ExpressionTag.Apply) {
-                return new AST.Call<Types.Parsed>(token.loc, ((AST.Apply<Types.Parsed>)ast).function, ((AST.Apply<Types.Parsed>)ast).argument);
+                return new AST.Call<String, Types.Parsed>(token.loc, ((AST.Apply<String, Types.Parsed>)ast).function, ((AST.Apply<String, Types.Parsed>)ast).argument);
             }
             throw errorUnexpectedToken(token.loc, token.source);
         } else if (lookahead.source.equals("=")) {
-            AST.LValue<Types.Parsed> lValue = certifyLValue(ast);
+            AST.LValue<String, Types.Parsed> lValue = certifyLValue(ast);
             context.index++;
-            return new AST.Assign<Types.Parsed>(token.loc, lValue, (new Expression(context)).parseOpenTuple());
+            return new AST.Assign<String, Types.Parsed>(token.loc, lValue, (new Expression(context)).parseOpenTuple());
         }
         throw errorUnexpectedToken(token.loc, token.source);
     }
     
-    public AST.Let<Types.Parsed> parseLet(Location loc) throws CompilerError {
+    public AST.Let<String, Types.Parsed> parseLet(Location loc) throws CompilerError {
         Token lookahead = context.lookahead();
         if (lookahead == null) {
             throw ParseContext.errorUnexpected(loc, "a binding", "ran out of input");
         }
         Location letLoc;
-        ArrayList<AST.Binding<Types.Parsed>> bs;
+        ArrayList<AST.Binding<String, Types.Parsed>> bs;
         switch (lookahead.tag) {
         case Block:
             bs = new Binding(lookahead.loc, lookahead.subtokens).parseListFull("}");
@@ -176,13 +176,13 @@ public final class Statement extends Parser<AST.Statement<Types.Parsed>> {
                 throw CompilerError.parse(loc, "You cannot have an empty let block.");
             }
             letLoc = new Location(loc, bs.get(bs.size() - 1).loc);
-            return new AST.Let<Types.Parsed>(letLoc, bs);
+            return new AST.Let<String, Types.Parsed>(letLoc, bs);
         case Identifier:
         case Reserved:
-            bs = new ArrayList<AST.Binding<Types.Parsed>>();
+            bs = new ArrayList<AST.Binding<String, Types.Parsed>>();
             bs.add((new Binding(context)).parse(0));
             letLoc = new Location(loc, bs.get(bs.size() - 1).loc);
-            return new AST.Let<Types.Parsed>(letLoc, bs);
+            return new AST.Let<String, Types.Parsed>(letLoc, bs);
         }
         throw ParseContext.errorUnexpected(loc, "an identifier or binding block", "found " + lookahead.source);
     }

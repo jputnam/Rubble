@@ -5,6 +5,7 @@ import java.util.ArrayList;
 import rubble.data.AST;
 import rubble.data.CompilerError;
 import rubble.data.Location;
+import rubble.data.Mode;
 import rubble.data.Token;
 import rubble.data.Types;
 
@@ -19,22 +20,7 @@ import rubble.data.Types;
  */
 public final class Reference {
     
-    private static final class Notation {
-        
-        final Location loc;
-        final String source;
-        final boolean isDeclaredMutable;
-        final Types.Type<Types.Parsed> declaredType;
-        
-        public Notation(Location loc, boolean isDeclaredMutable, String source, Types.Type<Types.Parsed> declaredType) {
-            this.loc = loc;
-            this.isDeclaredMutable = isDeclaredMutable;
-            this.source = source;
-            this.declaredType = declaredType;
-        }
-    }
-    
-    private static final class NotationParser extends Parser<Notation> {
+    private static final class NotationParser extends Parser<AST.Reference<String, Types.Parsed>> {
         
         public NotationParser(ParseContext context) {
             super(context, "a variable name", ",");
@@ -44,65 +30,46 @@ public final class Reference {
             super(loc, tokens, "a variable name", ",");
         }
         
-        protected LeftDenotation<Notation> leftDenotation(Token token) throws CompilerError {
+        protected LeftDenotation<AST.Reference<String, Types.Parsed>> leftDenotation(Token token) throws CompilerError {
             return null;
         }
         
-        protected Notation nullDenotation(Token token) throws CompilerError {
-            boolean isDeclaredMutable = false;
+        protected AST.Reference<String, Types.Parsed> nullDenotation(Token token) throws CompilerError {
+            Mode mode = Mode.Immutable;
             if (token.source.equals("var")) {
-                isDeclaredMutable = true;
+                mode = Mode.Mutable;
                 token = nextToken();
             }
             switch(token.tag) {
             case Identifier:
+                Types.Type<String, Types.Parsed> type = Types.UNKNOWN;
                 Token t = context.lookahead();
                 if (t != null && t.source.equals("asType")) {
                     context.index++;
-                    Types.Type<Types.Parsed> type = new Type(context).parse(0);
-                    return new Notation(token.loc, isDeclaredMutable, token.source, type);
+                    type = new Type(context).parse(0);
                 }
-                return new Notation(token.loc, isDeclaredMutable, token.source, null);
+                return new AST.Reference<String, Types.Parsed>(token.loc, mode, token.source, type);
             default: throw errorUnexpectedToken(token.loc, token.source);
             }
         }
     }
     
-    private static Types.Type<Types.Parsed> varVarRule(Location loc, Types.Type<Types.Parsed> type, boolean isDeclaredMutable) throws CompilerError {
-        if (isDeclaredMutable) {
-            if (type.isMutable) {
-                throw CompilerError.parse(loc, "A variable may not be both marked as mutable and declared as having a mutable type.");
+    public static ArrayList<AST.Reference<String, Types.Parsed>> parse(ParseContext context) throws CompilerError {
+        ArrayList<AST.Reference<String, Types.Parsed>> result = (new NotationParser(context)).parseList();
+        
+        if (result.size() == 0) {
+            return result;
+        }
+        
+        AST.Reference<String, Types.Parsed> last = result.get(result.size() - 1);
+        Types.Type<String, Types.Parsed> declared = last.type;
+        
+        for (int i = result.size() - 2; i >= 0; i--) {
+            AST.Reference<String, Types.Parsed> current = result.get(i);
+            if (current.type == Types.UNKNOWN) {
+                result.set(i, new AST.Reference<String, Types.Parsed>(current.loc, current.mode, current.name, declared));
             } else {
-                return type.mutable();
-            }
-        }
-        return type;
-    }
-    
-    public static ArrayList<AST.Reference<Types.Parsed>> parse(ParseContext context) throws CompilerError {
-        ArrayList<Notation> names = (new NotationParser(context)).parseList();
-        
-        ArrayList<AST.Reference<Types.Parsed>> result = new ArrayList<AST.Reference<Types.Parsed>>(); 
-        if (names.size() == 0) {
-            return new ArrayList<AST.Reference<Types.Parsed>>();
-        }
-        
-        Notation last = names.get(names.size() - 1);
-        Types.Type<Types.Parsed> declared = last.declaredType;
-        if (declared == null) {
-            declared = Types.UNKNOWN_IMMUTABLE;
-        }
-        result.add(0, new AST.Reference<Types.Parsed>(last.source, varVarRule(last.loc, declared, last.isDeclaredMutable)));
-        
-        
-        for (int i = names.size() - 2; i >= 0; i--) {
-            Notation notation = names.get(i);
-            if (notation.declaredType == null) {
-                Types.Type<Types.Parsed> finalType = varVarRule(notation.loc, declared, notation.isDeclaredMutable);
-                result.add(0, new AST.Reference<Types.Parsed>(notation.source, finalType));
-            } else {
-                result.add(0, new AST.Reference<Types.Parsed>(notation.source, notation.declaredType));
-                declared = names.get(i).declaredType;
+                declared = current.type;
             }
         }
         return result;
