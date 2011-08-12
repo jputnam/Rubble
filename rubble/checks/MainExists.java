@@ -4,7 +4,9 @@ import java.util.ArrayList;
 import rubble.data.AST;
 import rubble.data.CompilerError;
 import rubble.data.Location;
+import rubble.data.Names.*;
 import rubble.data.Types;
+import rubble.data.Types.*;
 
 
 /**
@@ -30,26 +32,26 @@ public final class MainExists {
      * @param declarations
      * @throws CompilerError
      */
-    public static void ensureMainExists(Location loc, ArrayList<AST.Declaration<Types.Parsed>> declarations) throws CompilerError {
+    public static void ensureMainExists(Location loc, ArrayList<AST.Declaration<String, Parsed>> declarations) throws CompilerError {
         boolean found = false;
-        for (AST.Declaration<Types.Parsed> d: declarations) {
+        for (AST.Declaration<String, Parsed> d: declarations) {
             
             if (d.tag == AST.DeclarationTag.Def) {
-                AST.Def<Types.Parsed> def = (AST.Def<Types.Parsed>)d;
+                AST.Def<String, Parsed> def = (AST.Def<String, Parsed>)d;
                 
                 if (def.name.equals("main")) {
-                    Types.Type<Types.Parsed> returnType = def.returnType;
-                    if (returnType.isMutable == true || !isSpecificGround(returnType, Types.GroundTag.Int32)) {
+                    Type<String, Parsed> returnType = def.returnType;
+                    if (!isSpecificGround(returnType, GroundTag.Int32)) {
                         throw CompilerError.parse(def.loc, "main() must return an immutable Int32.");
                     }
                     
-                    ArrayList<AST.Reference<Types.Parsed>> args = def.arguments;
+                    ArrayList<AST.Reference<String, Parsed>> args = def.arguments;
                     if (args.size() != 1) {
                         throw CompilerError.parse(def.loc, "main() must take one immutable () argument.");
                     }
                     
-                    Types.Type<Types.Parsed> type = args.get(0).type;
-                    if (type.isMutable == true || !isSpecificGround(type, Types.GroundTag.Unit)) {
+                    Type<String, Parsed> type = args.get(0).type;
+                    if (!isSpecificGround(type, GroundTag.Unit)) {
                         throw CompilerError.parse(def.loc, "main() must take one immutable () argument.");
                     }
                     found = true;
@@ -59,13 +61,13 @@ public final class MainExists {
         if (!found) { throw CompilerError.parse(loc, "A function named main must exist."); }
     }
     
-    private static boolean isSpecificGround(Types.Type<Types.Parsed> type, Types.GroundTag tag) {
+    private static boolean isSpecificGround(Type<String, Parsed> type, GroundTag tag) {
         if (type.tag != Types.Tag.Known) { return false; }
         
-        Types.Type<Types.Mono> inner = ((Types.Known<Types.Parsed>)type).type;
+        Type<ResolvedName, Mono> inner = ((Known<String, Parsed>)type).type;
         if (inner.tag != Types.Tag.Ground) { return false; }
         
-        return ((Types.Ground)inner).groundTag == tag;
+        return ((Ground)inner).groundTag == tag;
     }
     
 }
