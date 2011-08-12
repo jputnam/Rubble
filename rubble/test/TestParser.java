@@ -13,7 +13,13 @@ import rubble.parser.Statement;
 import rubble.parser.Type;
 import rubble.test.TestHarness.*;
 
-
+/**
+ * Tests the parsers.
+ * 
+ * Copyright (c) 2011 Jared Putnam
+ * Released under the terms of the 2-clause BSD license, which should be
+ * included with this source.
+ */
 public final class TestParser {
     
     private static String parseDecl(String decl) throws CompilerError {

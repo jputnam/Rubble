@@ -4,7 +4,14 @@ import java.util.ArrayList;
 
 import rubble.data.Names.ResolvedName;
 
-
+/**
+ * A container class for the abstract term-leve syntax.  Types are elsewhere,
+ * as are modes.
+ * 
+ * Copyright (c) 2011 Jared Putnam
+ * Released under the terms of the 2-clause BSD license, which should be
+ * included with this source.
+ */
 public final class AST {
     
     public static final class Binding<Phase> {

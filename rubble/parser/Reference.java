@@ -8,17 +8,25 @@ import rubble.data.Location;
 import rubble.data.Token;
 import rubble.data.Types;
 
-
-public final class Reference<Phase> {
+/**
+ * For lack of a better name, these are called references.  They are what come
+ * after the keyword "let" and before the equals sign in a let statement.
+ * They are also used in parameter lists.
+ * 
+ * Copyright (c) 2011 Jared Putnam
+ * Released under the terms of the 2-clause BSD license, which should be
+ * included with this source.
+ */
+public final class Reference {
     
-    private static final class Notation<Phase> {
+    private static final class Notation {
         
         final Location loc;
         final String source;
         final boolean isDeclaredMutable;
-        final Types.Type<Phase> declaredType;
+        final Types.Type<Types.Parsed> declaredType;
         
-        public Notation(Location loc, boolean isDeclaredMutable, String source, Types.Type<Phase> declaredType) {
+        public Notation(Location loc, boolean isDeclaredMutable, String source, Types.Type<Types.Parsed> declaredType) {
             this.loc = loc;
             this.isDeclaredMutable = isDeclaredMutable;
             this.source = source;
@@ -26,7 +34,7 @@ public final class Reference<Phase> {
         }
     }
     
-    private static final class NotationParser extends Parser<Notation<Types.Parsed>> {
+    private static final class NotationParser extends Parser<Notation> {
         
         public NotationParser(ParseContext context) {
             super(context, "a variable name", ",");
@@ -36,11 +44,11 @@ public final class Reference<Phase> {
             super(loc, tokens, "a variable name", ",");
         }
         
-        protected LeftDenotation<Notation<Types.Parsed>> leftDenotation(Token token) throws CompilerError {
+        protected LeftDenotation<Notation> leftDenotation(Token token) throws CompilerError {
             return null;
         }
         
-        protected Notation<Types.Parsed> nullDenotation(Token token) throws CompilerError {
+        protected Notation nullDenotation(Token token) throws CompilerError {
             boolean isDeclaredMutable = false;
             if (token.source.equals("var")) {
                 isDeclaredMutable = true;
@@ -52,9 +60,9 @@ public final class Reference<Phase> {
                 if (t != null && t.source.equals("asType")) {
                     context.index++;
                     Types.Type<Types.Parsed> type = new Type(context).parse(0);
-                    return new Notation<Types.Parsed>(token.loc, isDeclaredMutable, token.source, type);
+                    return new Notation(token.loc, isDeclaredMutable, token.source, type);
                 }
-                return new Notation<Types.Parsed>(token.loc, isDeclaredMutable, token.source, null);
+                return new Notation(token.loc, isDeclaredMutable, token.source, null);
             default: throw errorUnexpectedToken(token.loc, token.source);
             }
         }
@@ -72,14 +80,14 @@ public final class Reference<Phase> {
     }
     
     public static ArrayList<AST.Reference<Types.Parsed>> parse(ParseContext context) throws CompilerError {
-        ArrayList<Notation<Types.Parsed>> names = (new NotationParser(context)).parseList();
+        ArrayList<Notation> names = (new NotationParser(context)).parseList();
         
         ArrayList<AST.Reference<Types.Parsed>> result = new ArrayList<AST.Reference<Types.Parsed>>(); 
         if (names.size() == 0) {
             return new ArrayList<AST.Reference<Types.Parsed>>();
         }
         
-        Notation<Types.Parsed> last = names.get(names.size() - 1);
+        Notation last = names.get(names.size() - 1);
         Types.Type<Types.Parsed> declared = last.declaredType;
         if (declared == null) {
             declared = Types.UNKNOWN_IMMUTABLE;
@@ -88,7 +96,7 @@ public final class Reference<Phase> {
         
         
         for (int i = names.size() - 2; i >= 0; i--) {
-            Notation<Types.Parsed> notation = names.get(i);
+            Notation notation = names.get(i);
             if (notation.declaredType == null) {
                 Types.Type<Types.Parsed> finalType = varVarRule(notation.loc, declared, notation.isDeclaredMutable);
                 result.add(0, new AST.Reference<Types.Parsed>(notation.source, finalType));

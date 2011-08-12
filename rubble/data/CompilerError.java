@@ -1,5 +1,14 @@
 package rubble.data;
 
+/**
+ * The generic "something has gone wrong" exception.  I could make a whole
+ * exception hierarchy, but there isn't much point, when I can just say
+ * what the problem was.
+ * 
+ * Copyright (c) 2011 Jared Putnam
+ * Released under the terms of the 2-clause BSD license, which should be
+ * included with this source.
+ */
 public final class CompilerError extends Exception {
     
 	public final static long serialVersionUID = 0;

@@ -1,5 +1,14 @@
 package rubble.data;
 
+/**
+ * The location of something in the source file.  The end location is recorded
+ * at one row past its actual end so that automatically inserted semicolons
+ * have zero width.
+ * 
+ * Copyright (c) 2011 Jared Putnam
+ * Released under the terms of the 2-clause BSD license, which should be
+ * included with this source.
+ */
 public final class Location {
 	
 	public final int startRow;

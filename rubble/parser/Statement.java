@@ -8,7 +8,13 @@ import rubble.data.Location;
 import rubble.data.Token;
 import rubble.data.Types;
 
-
+/**
+ * The statement parser.
+ * 
+ * Copyright (c) 2011 Jared Putnam
+ * Released under the terms of the 2-clause BSD license, which should be
+ * included with this source.
+ */
 public final class Statement extends Parser<AST.Statement<Types.Parsed>> {
     
     private static final class StringStack {

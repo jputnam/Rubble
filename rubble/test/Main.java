@@ -1,6 +1,12 @@
 package rubble.test;
 
-
+/**
+ * The test driver.
+ * 
+ * Copyright (c) 2011 Jared Putnam
+ * Released under the terms of the 2-clause BSD license, which should be
+ * included with this source.
+ */
 public class Main {
     
     public static void main(String[] args) {

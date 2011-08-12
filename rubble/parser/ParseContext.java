@@ -6,7 +6,14 @@ import rubble.data.CompilerError;
 import rubble.data.Location;
 import rubble.data.Token;
 
-
+/**
+ * The context in which a parse is occurring.  The point of this is to treat
+ * objects as the State monad.
+ * 
+ * Copyright (c) 2011 Jared Putnam
+ * Released under the terms of the 2-clause BSD license, which should be
+ * included with this source.
+ */
 public final class ParseContext {
     
     public final Location loc;

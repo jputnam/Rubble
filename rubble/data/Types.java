@@ -4,7 +4,14 @@ import java.util.ArrayList;
 
 import rubble.data.Names.*;
 
-
+/**
+ * A container class for types, type-level numbers, and witnesses indicating
+ * the phase of compilation the types are being used at.
+ * 
+ * Copyright (c) 2011 Jared Putnam
+ * Released under the terms of the 2-clause BSD license, which should be
+ * included with this source.
+ */
 public final class Types {
     
     public static final class Mono { }
@@ -14,7 +21,9 @@ public final class Types {
     public static final class Poly extends Parsed { }
     
     
-    public static abstract class Nat<Phase> {
+    public static enum NatTag { NatExternal, NatKnown, NatLiteral, NatVar, NatUnknown }
+    
+    public static abstract class Nat<Name, Phase> {
         
         public final NatTag tag;
         
@@ -25,36 +34,31 @@ public final class Types {
         public void resolveNames(NamingContext context) throws CompilerError { }
     }
     
-    public static enum NatTag { NatExternal, NatKnown, NatLiteral, NatVar, NatUnknown }
-    
-    public static final class NatExternal<Phase> extends Nat<Phase> {
+    public static final class NatExternal<Name, Phase> extends Nat<Name, Phase> {
         
         public final Location loc;
-        public final String source;
-        public ResolvedName name;
+        public final Name name;
         
-        public NatExternal(Location loc, String source) {
+        public NatExternal(Location loc, Name name) {
             super(NatTag.NatVar);
             this.loc = loc;
-            this.source = source;
-            this.name = null;
+            this.name = name;
         }
-        
+        /*
         public void resolveNames(NamingContext context) throws CompilerError {
             name = context.resolve(loc, source);
         }
-        
+        */
         public String toString() {
-            String nameString = name == null ? source : name.toString();
-            return "{NE " + nameString + "}";
+            return "{NE " + name.toString() + "}";
         }
     }
     
-    public static final class NatKnown<Phase extends Parsed> extends Nat<Phase> {
+    public static final class NatKnown<Name, Phase extends Parsed> extends Nat<Name, Phase> {
         
-        public final Nat<Mono> nat;
+        public final Nat<ResolvedName, Mono> nat;
         
-        public NatKnown(Nat<Mono> nat) {
+        public NatKnown(Nat<ResolvedName, Mono> nat) {
             super(NatTag.NatKnown);
             this.nat = nat;
         }
@@ -64,7 +68,7 @@ public final class Types {
         }
     }
     
-    public static final class NatLiteral extends Nat<Mono> {
+    public static final class NatLiteral extends Nat<ResolvedName, Mono> {
         
         public final long value;
         
@@ -78,7 +82,7 @@ public final class Types {
         }
     }
     
-    public static final class NatVar extends Nat<Poly> {
+    public static final class NatVar extends Nat<ResolvedName, Poly> {
         
         public final int index;
         
@@ -92,7 +96,7 @@ public final class Types {
         }
     }
     
-    public static final class NatUnknown extends Nat<Parsed> {
+    public static final class NatUnknown extends Nat<String, Parsed> {
         
         public NatUnknown() {
             super(NatTag.NatUnknown);

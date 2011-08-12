@@ -5,7 +5,13 @@ import java.util.ArrayList;
 import rubble.data.CompilerError;
 import rubble.data.Token;
 
-
+/**
+ * The test harness.
+ * 
+ * Copyright (c) 2011 Jared Putnam
+ * Released under the terms of the 2-clause BSD license, which should be
+ * included with this source.
+ */
 public final class TestHarness {
     
     public static enum TestResult { Succeeded, Failed, Crashed }

@@ -3,7 +3,15 @@ package rubble.data;
 import java.util.Arrays;
 import java.util.ArrayList;
 
-
+/**
+ * Tokens that the source gets transformed into.  Block tokens are used for
+ * bracket pairs; the subtoken list is the tokens enclosed by that block.
+ * All other tokens should have an empty subtoken list.
+ * 
+ * Copyright (c) 2011 Jared Putnam
+ * Released under the terms of the 2-clause BSD license, which should be
+ * included with this source.
+ */
 public final class Token {
     
 	public static enum Tag {

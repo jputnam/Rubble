@@ -5,7 +5,13 @@ import rubble.parser.Lexer;
 import rubble.parser.Layout;
 import rubble.test.TestHarness.*;
 
-
+/**
+ * Tests the layout rule implementation.
+ * 
+ * Copyright (c) 2011 Jared Putnam
+ * Released under the terms of the 2-clause BSD license, which should be
+ * included with this source.
+ */
 public final class TestLayout {
 
     public static final TestHarness.TestCase[] cases = {

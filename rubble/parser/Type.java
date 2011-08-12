@@ -8,7 +8,13 @@ import rubble.data.Token;
 import rubble.data.Types;
 import rubble.data.Types.GroundTag;
 
-
+/**
+ * The type parser.
+ * 
+ * Copyright (c) 2011 Jared Putnam
+ * Released under the terms of the 2-clause BSD license, which should be
+ * included with this source.
+ */
 public final class Type extends Parser<Types.Type<Types.Parsed>> {
     
     public Type(ParseContext context) {

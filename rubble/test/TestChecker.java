@@ -12,7 +12,13 @@ import rubble.parser.Lexer;
 import rubble.parser.Parser;
 import rubble.test.TestHarness.*;
 
-
+/**
+ * Tests the sanity checkers.
+ * 
+ * Copyright (c) 2011 Jared Putnam
+ * Released under the terms of the 2-clause BSD license, which should be
+ * included with this source.
+ */
 public final class TestChecker {
 
     private static String checkReturns(String decl) throws CompilerError {

@@ -7,6 +7,15 @@ import rubble.data.Location;
 import rubble.data.Token;
 import rubble.data.Token.Tag;
 
+/**
+ * The algorithm that implements the layout rule.  The actual algorithm is
+ * implemented in layoutAny(); almost everything else here is parameters
+ * for that algorithm.
+ * 
+ * Copyright (c) 2011 Jared Putnam
+ * Released under the terms of the 2-clause BSD license, which should be
+ * included with this source.
+ */
 public final class Layout {
 
     private final ArrayList<Token> tokens;

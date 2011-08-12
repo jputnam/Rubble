@@ -8,7 +8,17 @@ import rubble.data.Location;
 import rubble.data.Token;
 import rubble.data.Types;
 
-
+/**
+ * The generic parser.  This is the Pratt parser, which, while simple in
+ * theory, turns out to be rather tricky in practice.  I will probably not
+ * use it again.
+ * 
+ * Copyright (c) 2011 Jared Putnam
+ * Released under the terms of the 2-clause BSD license, which should be
+ * included with this source.
+ *
+ * @param <T> The AST type being built by the parser.
+ */
 public abstract class Parser<T> {
     
     public static abstract class LeftDenotation<A> {

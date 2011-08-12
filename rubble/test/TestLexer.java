@@ -4,6 +4,13 @@ import rubble.data.CompilerError;
 import rubble.parser.Lexer;
 import rubble.test.TestHarness.*;
 
+/**
+ * Tests the lexer.
+ * 
+ * Copyright (c) 2011 Jared Putnam
+ * Released under the terms of the 2-clause BSD license, which should be
+ * included with this source.
+ */
 public final class TestLexer {
     
     public static final TestHarness.TestCase[] cases = {
