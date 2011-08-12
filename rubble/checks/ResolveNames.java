@@ -7,7 +7,13 @@ import rubble.data.CompilerError;
 import rubble.data.NamingContext;
 import rubble.data.Types.*;
 
-
+/**
+ * Driver for name resolution.  This may go away.
+ * 
+ * Copyright (c) 2011 Jared Putnam
+ * Released under the terms of the 2-clause BSD license, which should be
+ * included with this source.
+ */
 public final class ResolveNames {
     
     public static void resolveNames(ArrayList<Declaration<Parsed>> ds) throws CompilerError {

@@ -13,7 +13,9 @@ import rubble.data.Types.*;
 /**
  * Typechecks expressions and decorates the terms with the correct types.
  * 
- * @author Jared Putnam
+ * Copyright (c) 2011 Jared Putnam
+ * Released under the terms of the 2-clause BSD license, which should be
+ * included with this source.
  */
 public final class TypeSystem {
     

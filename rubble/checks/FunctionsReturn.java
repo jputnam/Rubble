@@ -11,7 +11,9 @@ import rubble.data.Types;
  * Contains a function that conservatively checks whether all functions must
  * return a value.
  * 
- * @author Jared Putnam
+ * Copyright (c) 2011 Jared Putnam
+ * Released under the terms of the 2-clause BSD license, which should be
+ * included with this source.
  */
 public final class FunctionsReturn {
     
