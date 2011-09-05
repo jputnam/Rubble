@@ -15,44 +15,21 @@ import rubble.data.Types.Poly;
  */
 public final class AST {
     
-    public static final class Reference<Name, Phase> {
-        
-        public final Location loc;
-        public final Mode mode;
-        public final String name;
-        public final Types.Type<Name, Phase> type;
-        
-        public Reference(Location loc, Mode mode, String name, Types.Type<Name, Phase> type) {
-            this.loc = loc;
-            this.mode = mode;
-            this.name = name;
-            this.type = type;
-        }
-        
-        public Reference<ResolvedName, Poly> resolveNames(NamingContext context) throws CompilerError {
-            return new Reference<ResolvedName, Poly>(loc, mode, name, type.resolveNames(context));
-        }
-        
-        public String toString() {
-            return "{" + loc.toString() + " " + mode + " " + name.toString() + " " + type.toString() + "}";
-        }
-    }
-    
     public static final class Binding<Name, Phase> {
         
         public final Location loc;
-        public final ArrayList<Reference<Name, Phase>> references;
+        public final ArrayList<Variable<Name, Phase>> references;
         public final Expression<Name, Phase> value;
         
-        public Binding(Location loc, ArrayList<Reference<Name, Phase>> references, Expression<Name, Phase> value) {
+        public Binding(Location loc, ArrayList<Variable<Name, Phase>> references, Expression<Name, Phase> value) {
             this.loc = loc;
             this.references = references;
             this.value = value;
         }
         
         public Binding<ResolvedName, Poly> resolveNames(NamingContext context) throws CompilerError {
-            ArrayList<Reference<ResolvedName, Poly>> newReferences = new ArrayList<Reference<ResolvedName, Poly>>();
-            for (Reference<Name, Phase> r: references) {
+            ArrayList<Variable<ResolvedName, Poly>> newReferences = new ArrayList<Variable<ResolvedName, Poly>>();
+            for (Variable<Name, Phase> r: references) {
                 newReferences.add(r.resolveNames(context));
             }
             return new Binding<ResolvedName, Poly>(loc, newReferences, value.resolveNames(context));
@@ -60,7 +37,7 @@ public final class AST {
         
         public String toString() {
             String refs = "";
-            for (Reference<Name, Phase> r: references) {
+            for (Variable<Name, Phase> r: references) {
                 refs += r.toString();
             }
             return "(Binding " + loc.toString() + " " + refs + value.toString() + ")";
@@ -84,11 +61,11 @@ public final class AST {
     public static final class Def<Name, Phase> extends Declaration<Name, Phase> {
         
         public final String name;
-        public final ArrayList<Reference<Name, Phase>> arguments;
+        public final ArrayList<Variable<Name, Phase>> arguments;
         public final Types.Type<Name, Phase> returnType;
         public final ArrayList<Statement<Name, Phase>> body;
         
-        public Def(Location loc, String name, ArrayList<Reference<Name, Phase>> arguments, Types.Type<Name, Phase> returnType, ArrayList<Statement<Name, Phase>> body) {
+        public Def(Location loc, String name, ArrayList<Variable<Name, Phase>> arguments, Types.Type<Name, Phase> returnType, ArrayList<Statement<Name, Phase>> body) {
             super(loc, DeclarationTag.Def);
             this.name = name;
             this.arguments = arguments;
@@ -110,7 +87,7 @@ public final class AST {
         */
         public String toString() {
             String args = "";
-            for (Reference<Name, Phase> r: arguments) {
+            for (Variable<Name, Phase> r: arguments) {
                 args += r.toString();
             }
             String bodyString = "";
@@ -310,6 +287,24 @@ public final class AST {
         }
     }
     
+    public static final class Reference<Name, Phase> extends Expression<Name, Phase> {
+        
+        public final Name name;
+        
+        public Reference(Location loc, Types.Type<Name, Phase> type, Name name) {
+            super(loc, type, ExpressionTag.Variable);
+            this.name = name;
+        }
+        
+        public Expression<ResolvedName, Poly> resolveNames(NamingContext context) throws CompilerError {
+            return new Reference<ResolvedName, Poly>(loc, type.resolveNames(context), context.resolve(loc, name.toString()));
+        }
+        
+        public String toString() {
+            return "(Var " + loc.toString() + " {" + name.toString() + "})";
+        }
+    }
+    
     public static final class Tuple<Name, Phase> extends Expression<Name, Phase> {
         
         public final ArrayList<Expression<Name, Phase>> es;
@@ -351,24 +346,6 @@ public final class AST {
         
         public String toString() {
             return "(* " + loc.toString() + " " + value.toString() + ")";
-        }
-    }
-    
-    public static final class Variable<Name, Phase> extends Expression<Name, Phase> {
-        
-        public final Name name;
-        
-        public Variable(Location loc, Types.Type<Name, Phase> type, Name name) {
-            super(loc, type, ExpressionTag.Variable);
-            this.name = name;
-        }
-        
-        public Expression<ResolvedName, Poly> resolveNames(NamingContext context) throws CompilerError {
-            return new Variable<ResolvedName, Poly>(loc, type.resolveNames(context), context.resolve(loc, name.toString()));
-        }
-        
-        public String toString() {
-            return "(Var " + loc.toString() + " {" + name.toString() + "})";
         }
     }
     

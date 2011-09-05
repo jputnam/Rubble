@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import rubble.data.AST;
 import rubble.data.CompilerError;
 import rubble.data.Location;
+import rubble.data.Variable;
 import rubble.data.Names.*;
 import rubble.data.Types;
 import rubble.data.Types.*;
@@ -45,7 +46,7 @@ public final class MainExists {
                         throw CompilerError.parse(def.loc, "main() must return an immutable Int32.");
                     }
                     
-                    ArrayList<AST.Reference<String, Parsed>> args = def.arguments;
+                    ArrayList<Variable<String, Parsed>> args = def.arguments;
                     if (args.size() != 1) {
                         throw CompilerError.parse(def.loc, "main() must take one immutable () argument.");
                     }

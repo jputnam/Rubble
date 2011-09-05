@@ -7,6 +7,7 @@ import rubble.data.CompilerError;
 import rubble.data.Location;
 import rubble.data.Token;
 import rubble.data.Types;
+import rubble.data.Variable;
 
 /**
  * The parser for variable bindings.
@@ -34,7 +35,7 @@ public final class Binding extends Parser<AST.Binding<String, Types.Parsed>> {
         case Identifier:
         case Reserved:
             context.index -= 1;
-            ArrayList<AST.Reference<String, Types.Parsed>> names = Reference.parse(context);
+            ArrayList<Variable<String, Types.Parsed>> names = VariableDeclaration.parse(context);
             if (names.size() == 0) {
                 throw ParseContext.errorUnexpected(token.loc, "a variable binding", "did not find one");
             }

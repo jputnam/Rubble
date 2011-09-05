@@ -70,7 +70,7 @@ public final class Expression extends Parser<AST.Expression<String, Types.Parsed
     }
     
     private LeftDenotation<AST.Expression<String, Types.Parsed>> infixOperator(final int precedence, Token center) throws CompilerError {
-        return infixExpression(precedence, new AST.Variable<String, Types.Parsed>(center.loc, Types.UNKNOWN, center.source));
+        return infixExpression(precedence, new AST.Reference<String, Types.Parsed>(center.loc, Types.UNKNOWN, center.source));
     }
     
     protected LeftDenotation<AST.Expression<String, Types.Parsed>> leftDenotation(final Token token) throws CompilerError {
@@ -92,7 +92,7 @@ public final class Expression extends Parser<AST.Expression<String, Types.Parsed
             }
             return null;
         case Identifier:
-            return application(new AST.Variable<String, Types.Parsed>(token.loc, Types.UNKNOWN, token.source));
+            return application(new AST.Reference<String, Types.Parsed>(token.loc, Types.UNKNOWN, token.source));
         case Number:
             return application(new AST.Number<String, Types.Parsed>(token.loc, Types.UNKNOWN, token.source));
         case Operator:
@@ -155,7 +155,7 @@ public final class Expression extends Parser<AST.Expression<String, Types.Parsed
         case Comma:
             throw errorUnexpectedToken(token.loc, "a comma");
         case Identifier:
-            return new AST.Variable<String, Types.Parsed>(token.loc, Types.UNKNOWN, token.source);
+            return new AST.Reference<String, Types.Parsed>(token.loc, Types.UNKNOWN, token.source);
         case Number:
             return new AST.Number<String, Types.Parsed>(token.loc, Types.UNKNOWN, token.source);
         case Operator:
@@ -171,7 +171,7 @@ public final class Expression extends Parser<AST.Expression<String, Types.Parsed
                 AST.Expression<String, Types.Parsed> falseBranch = parse(0);
                 return new AST.IfE<String, Types.Parsed>(token.loc, Types.UNKNOWN, cond, trueBranch, falseBranch);
             } else if (token.source.equals("negate")) {
-                return new AST.Apply<String, Types.Parsed>(token.loc, Types.UNKNOWN, new AST.Variable<String, Types.Parsed>(token.loc, Types.UNKNOWN, "negate"), parse(12));
+                return new AST.Apply<String, Types.Parsed>(token.loc, Types.UNKNOWN, new AST.Reference<String, Types.Parsed>(token.loc, Types.UNKNOWN, "negate"), parse(12));
             } else if (token.source.equals("valueAt")) {
                 return new AST.ValueAt<String, Types.Parsed>(token.loc, Types.UNKNOWN, parse(12));
             }
@@ -200,7 +200,7 @@ public final class Expression extends Parser<AST.Expression<String, Types.Parsed
         ArrayList<AST.Expression<String, Types.Parsed>> result = (new Expression(loc, tokens)).parseListFull(")");
         switch (result.size()) {
         case 0:
-            return new AST.Variable<String, Types.Parsed>(loc, Types.UNKNOWN, "()");
+            return new AST.Reference<String, Types.Parsed>(loc, Types.UNKNOWN, "()");
         case 1:
             return result.get(0);
         default:

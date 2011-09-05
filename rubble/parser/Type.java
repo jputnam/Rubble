@@ -8,6 +8,7 @@ import rubble.data.Mode;
 import rubble.data.Token;
 import rubble.data.Types;
 import rubble.data.Types.GroundTag;
+import rubble.data.Variable;
 
 /**
  * The type parser.
@@ -33,32 +34,30 @@ public final class Type extends Parser<Types.Type<String, Types.Parsed>> {
     protected LeftDenotation<Types.Type<String, Types.Parsed>> leftDenotation(Token token) throws CompilerError {
         return null;
     }
-
+    
     protected Types.Type<String, Types.Parsed> nullDenotation(Token token) throws CompilerError {
         switch (token.tag){
         case Block:
             if (!token.source.equals("(")) {
                 throw errorUnexpectedToken(token.loc, token.source);
             }
-            ArrayList<Types.Type<String, Types.Parsed>> domainList = (new Type(token.loc, token.subtokens)).parseListFull(")");
-            
-            Types.Type<String, Types.Parsed> domain;
-            switch (domainList.size()) {
-            case 0:
-                domain = groundType(GroundTag.Unit);
-                break;
-            case 1:
-                domain = domainList.get(0);
-                break;
-            default:
-                domain = new Types.Tuple<String, Types.Parsed>(domainList);
-            }
-            
+            ArrayList<Variable<String, Types.Parsed>> domainList = VariableDeclaration.parseTypes(context);
             if (context.isLive() && context.lookahead().source.equals("->")) {
                 context.index++;
-                return new Types.Arrow<String, Types.Parsed>(domain, parse(0));
-            } else {
-                return domain;
+                return new Types.Arrow<String, Types.Parsed>(domainList, parse(0));
+            }
+            
+            switch (domainList.size()) {
+            case 0:
+                return groundType(GroundTag.Unit);
+            case 1:
+            	Variable<String, Types.Parsed> var = domainList.get(0);
+            	if (var.name.equals("") && var.mode == Mode.Const) {
+            		return var.type;
+            	}
+            	// Intentional fallthrough.
+            default:
+                return new Types.Tuple<String, Types.Parsed>(domainList);
             }
         case Identifier:
             if (token.source.equals("_")) {
@@ -94,10 +93,10 @@ public final class Type extends Parser<Types.Type<String, Types.Parsed>> {
                 }
                 parser.context.requireToken(",");
                 
-                Mode mode = Mode.Immutable;
+                Mode mode = Mode.Const;
                 if ("var".equals(parser.context.lookahead())) {
                     parser.context.index++;
-                    mode = Mode.Mutable;
+                    mode = Mode.Var;
                 }
                 return new Types.Buffer<String, Types.Parsed>(size, mode, parser.parseFull("]"));
             
@@ -117,10 +116,10 @@ public final class Type extends Parser<Types.Type<String, Types.Parsed>> {
                 }
                 Type parser = new Type(block.loc, block.subtokens);
                 
-                Mode mode = Mode.Immutable;
+                Mode mode = Mode.Const;
                 if ("var".equals(parser.context.lookahead())) {
                     parser.context.index++;
-                    mode = Mode.Mutable;
+                    mode = Mode.Var;
                 }
                 return new Types.Ptr<String, Types.Parsed>(mode, parser.parseFull("]"));
             

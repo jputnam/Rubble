@@ -164,17 +164,23 @@ public final class Types {
     
     public static final class Arrow<Name, Phase> extends Type<Name, Phase> {
         
-        public final Type<Name, Phase> domain;
+        public final ArrayList<Variable<Name, Phase>> domain;
         public final Type<Name, Phase> codomain;
         
-        public Arrow(Type<Name, Phase> domain, Type<Name, Phase> codomain) {
+        public Arrow(ArrayList<Variable<Name, Phase>> domain, Type<Name, Phase> codomain) {
             super(Tag.Arrow);
             this.domain = domain;
             this.codomain = codomain;
         }
         
         public Type<ResolvedName, Poly> resolveNames(NamingContext context) throws CompilerError {
-            return new Arrow<ResolvedName, Poly>(domain.resolveNames(context), codomain.resolveNames(context));
+        	ArrayList<Variable<ResolvedName, Poly>> newDomain = new ArrayList<Variable<ResolvedName, Poly>>();
+        	
+        	for (Variable<Name, Phase> var: domain) {
+        		newDomain.add(var.resolveNames(context));
+        	}
+        	
+            return new Arrow<ResolvedName, Poly>(newDomain, codomain.resolveNames(context));
         }
         
         public String toString() {
@@ -262,16 +268,16 @@ public final class Types {
     
     public static final class Tuple<Name, Phase> extends Type<Name, Phase> {
         
-        public final ArrayList<Type<Name, Phase>> members;
+        public final ArrayList<Variable<Name, Phase>> members;
         
-        public Tuple(ArrayList<Type<Name, Phase>> members) {
+        public Tuple(ArrayList<Variable<Name, Phase>> members) {
             super(Tag.Tuple);
             this.members = members;
         }
         
         public Type<ResolvedName, Poly> resolveNames(NamingContext context) throws CompilerError {
-            ArrayList<Type<ResolvedName, Poly>> newMembers = new ArrayList<Type<ResolvedName, Poly>>();
-            for (Type<Name, Phase> m: members) {
+            ArrayList<Variable<ResolvedName, Poly>> newMembers = new ArrayList<Variable<ResolvedName, Poly>>();
+            for (Variable<Name, Phase> m: members) {
                 newMembers.add(m.resolveNames(context));
             }
             return new Tuple<ResolvedName, Poly>(newMembers);
@@ -279,7 +285,7 @@ public final class Types {
         
         public String toString() {
             String ms = "";
-            for (Type<Name, Phase> t: members) {
+            for (Variable<Name, Phase> t: members) {
                 ms += t.toString();
             }
             return "(Tuple " + ms + ")";

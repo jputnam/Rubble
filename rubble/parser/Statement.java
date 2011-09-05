@@ -73,7 +73,7 @@ public final class Statement extends Parser<AST.Statement<String, Types.Parsed>>
         case ValueAt:
             return new AST.Indirect<String, Types.Parsed>(ast.loc, Types.UNKNOWN, ((AST.ValueAt<String, Types.Parsed>)ast).value);
         case Variable:
-            return new AST.Direct<String, Types.Parsed>(ast.loc, Types.UNKNOWN, ((AST.Variable<String, Types.Parsed>)ast).name);
+            return new AST.Direct<String, Types.Parsed>(ast.loc, Types.UNKNOWN, ((AST.Reference<String, Types.Parsed>)ast).name);
         default:
             throw ParseContext.errorUnexpected(ast.loc, "an lvalue", "found another kind of expression");
         }

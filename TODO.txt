@@ -1,4 +1,5 @@
 Make name resolution be a method of Statement and Declaration.
+Deal with names in types.
 Implement type inference.
 Implement mode checking.
 Test type checking.

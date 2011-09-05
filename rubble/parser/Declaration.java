@@ -8,6 +8,7 @@ import rubble.data.Location;
 import rubble.data.Mode;
 import rubble.data.Token;
 import rubble.data.Types;
+import rubble.data.Variable;
 
 /**
  * The parser for declarations.
@@ -43,13 +44,13 @@ public final class Declaration extends Parser<AST.Declaration<String, Types.Pars
             if (!argumentToken.source.equals("(")) {
                 throw ParseContext.errorUnexpected(argumentToken.loc, "an argument list", "found " + argumentToken.source);
             }
-            ArrayList<AST.Reference<String, Types.Parsed>> arguments = Reference.parse(new ParseContext(argumentToken.loc, argumentToken.subtokens));
+            ArrayList<Variable<String, Types.Parsed>> arguments = VariableDeclaration.parse(new ParseContext(argumentToken.loc, argumentToken.subtokens));
             
             // Function types always have at least one argument, so empty
             // argument lists are special cases to implicitly have a Unit
             // typed argument with an unreachable name.
             if (arguments.size() == 0) {
-                arguments.add(new AST.Reference<String, Types.Parsed>(argumentToken.loc, Mode.Immutable, "# Implicit argument", new Types.Known<String, Types.Parsed>(new Types.Ground(Types.GroundTag.Unit))));
+                arguments.add(new Variable<String, Types.Parsed>(argumentToken.loc, Mode.Const, "# Implicit argument", new Types.Known<String, Types.Parsed>(new Types.Ground(Types.GroundTag.Unit))));
             }
             
             
